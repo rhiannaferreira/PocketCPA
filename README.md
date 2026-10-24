@@ -22,3 +22,15 @@ Reads a photo of a document and returns ledger rows. Step 1 identifies the type 
 python3 -m agents.intake demo/data/documents/earn-2026-03-w2a.png   # one document
 python3 -m tests.check_intake_live                                    # all sample docs vs the answer key (uses the API)
 ```
+
+## Proof packet (`web/packet.py`)
+
+Renders the packet from MonthSummary rows and evidence entries only, so every number links to the image it came from. It shows the main and backup months, how each one meets the test, a table of evidence per month, the rules used with links, "the county decides" wording and a generation time.
+
+```bash
+python3 -m web.packet --demo out/packet.html   # stand-in data from demo/data/answer_key.json
+python3 -m web.packet --demo out/packet.pdf    # needs: pip install playwright && playwright install chromium
+python3 -m web.packet --input packet.json out/packet.pdf
+```
+
+`demo_packet()` builds stand-in input from the answer key. Once the coverage engine produces MonthSummary rows, pass those in with `--input` instead.
