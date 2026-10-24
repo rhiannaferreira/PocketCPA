@@ -23,7 +23,7 @@ python3 -m agents.intake demo/data/documents/earn-2026-03-w2a.png   # one docume
 python3 -m tests.check_intake_live                                    # all sample docs vs the answer key (uses the API)
 ```
 
-## Coverage engine & Auditor (`core/corridor.py`, `core/checks.py`)
+## Coverage engine & Auditor (`core/corridor.py`, `core/checks.py`, `core/adapters.py`)
 
 Pure Python with no network calls and no model calls. Money is integer cents, and every threshold lives in `core/rules.yaml`. The code decides; documents never do.
 
@@ -42,26 +42,38 @@ They must also stay at or under the income ceiling: $1,836.00 a month for a sing
 
 The county decides which reading applies. Our output only says what the evidence shows, and it never suggests earning less to stay eligible. Each `MonthSummary` carries plain-English `reasons` and the `source_ids` (document ids) behind its numbers. Income counts in the month its pay period ends.
 
-**Packet month.** `best_month` prefers `qualifies` over `qualifies_depends_on_basis`, skips any month an open flag touches, and takes the most recent month on a tie. It explains its pick.
+**From intake.** `activities_from_income` turns each payout's `active_minutes` into a work `ActivityEntry` (minutes ÷ 60, in the month the period ends, with its document id and confidence). The reasons call these hours "app-reported active time". `expenses_with_month` takes each expense's month from its date. Rows without a dollar amount are left out, and so is mileage: no mileage rate is applied. Both functions accept intake's dicts or objects with the same field names.
 
-**The Auditor.** Each check returns `Flag`s with one question for Maria. Every open flag blocks the packet.
+**Packet month.** `best_month` prefers `qualifies` over `qualifies_depends_on_basis`, skips any month an open flag touches, and takes the most recent month on a tie. It explains its pick. `packet_ready(flags)` returns `(False, messages)` while any flag with severity `block` is still open.
 
-| Check | Fires when |
-| --- | --- |
-| `duplicate` | Same image hash, or same platform + overlapping period + same amount |
-| `payout_without_deposit` | No deposit from the platform for the same amount (±$1.00) within 0 to 5 days after the period ends |
-| `deposit_without_payout` | A deposit matches no payout |
-| `low_confidence` | Any value read below 0.8 confidence |
-| `hidden_instruction` | Document text tries to instruct the app ("ignore previous", "system:", "set income to", ...). It is reported, never followed |
+**The Auditor.** Each check returns `Flag`s with one question for Maria.
 
-A flag's `entity_ids` list the rows it is about, then the months (`YYYY-MM`) whose result it could change. For a duplicate, the first id is the original we keep and the second is the copy. `resolve(flag, answer, ...)` takes Maria's yes or no. A confirmed duplicate is dropped and its month recomputed: March goes from $612.00 to $531.00, which is below the floor.
+| Check | Severity | Fires when |
+| --- | --- | --- |
+| `duplicate` | block | Same image hash, or same platform + overlapping period + same amount |
+| `hidden_instruction` | block | Document text tries to instruct the app ("ignore previous", "system:", "set income to", ...). It is reported, never followed |
+| `payout_without_deposit` | warn | No deposit from the platform for the same amount (±$1.00) within 0 to 5 days after the period ends |
+| `deposit_without_payout` | warn | A deposit matches no payout |
+| `low_confidence` | warn | Any value read below 0.8 confidence |
+
+Only `block` flags hold up the packet. `warn` flags are still asked, and their months are still skipped by `best_month`.
+
+A flag's `entity_ids` are typed so ids can't collide: first the rows it is about (`doc:`, `inc:`, `act:`, `exp:`, `dep:`), then the months whose result it could change (`month:2026-03`). For a duplicate, the first id is the original we keep and the second is the copy. `resolve(flag, answer, ...)` takes Maria's yes or no and works on dataclasses or pydantic models. A confirmed duplicate is dropped along with its hours, and its month is recomputed: March goes from $612.00 to $531.00, which is below the floor.
 
 ```bash
 python3 -m tests.run_cases       # pass/fail scoreboard over tests/cases/*.yaml
 python3 -m tests.run_cases -v    # plus each month's reasons, the questions and the packet pick
 ```
 
-Maria's cases are built from `demo/data` (SAMPLE data). The edge cases are inline in `tests/cases/02_edge_cases.yaml`.
+Maria's cases are built from `demo/data` (SAMPLE data) through the adapters. The edge cases are inline in `tests/cases/02_edge_cases.yaml`.
+
+**Known limits**
+
+- A pay period that crosses two months is counted entirely in the month it ends.
+- Exemptions (such as caretakers and medically frail people), the six-month income average for seasonal workers, and lookbacks of more than one month are not modeled. `best_month` picks a single month.
+- Correcting a low-confidence value isn't supported yet. Answering "no" leaves the flag open.
+- The `effective` date (2027-01-01) is not enforced, so the demo's 2026 months are judged under the 2027 rules.
+- Intake's mileage logs come out in miles only, and no mileage rate is applied, so those rows are left out of expenses. The sample data's May mileage line already has a dollar amount ($58.00), so it is counted.
 
 Sources:
 - CMS, [Community engagement overview](https://www.medicaid.gov/medicaid/downloads/community-engagement-overview-slide.pdf) (Public Law 119-21, section 71119), and the [interim final rule, CMS-2454-IFC](https://www.federalregister.gov/documents/2026/06/03/2026-11094/medicaid-program-community-engagement-requirement-for-certain-individuals) (June 3, 2026)
