@@ -42,7 +42,7 @@ They must also stay at or under the income ceiling: $1,836.00 a month for a sing
 
 The county decides which reading applies. Our output only says what the evidence shows, and it never suggests earning less to stay eligible. Each `MonthSummary` carries plain-English `reasons` and the `source_ids` (document ids) behind its numbers. Income counts in the month its pay period ends.
 
-**From intake.** `activities_from_income` turns each payout's `active_minutes` into a work `ActivityEntry` (minutes ÷ 60, in the month the period ends, with its document id and confidence). The reasons call these hours "app-reported active time". `expenses_with_month` takes each expense's month from its date. Rows without a dollar amount are left out, and so is mileage: no mileage rate is applied. Both functions accept intake's dicts or objects with the same field names.
+**From intake.** `activities_from_income` turns each payout's `active_minutes` into a work `ActivityEntry` (minutes ÷ 60, in the month the period ends, with its document id and confidence). The reasons call these hours "app-reported active time". `expenses_with_month` takes each expense's month from its date. Rows without a dollar amount are left out. The adapters apply no mileage rate; `demo/pipeline.py` turns mileage logs into dollars before calling them (see Known limits). Both functions accept intake's dicts or objects with the same field names.
 
 **Packet month.** `best_month` prefers `qualifies` over `qualifies_depends_on_basis`, skips any month an open `block` flag touches, and takes the most recent month on a tie. It explains its pick. `packet_ready(flags)` returns `(False, messages)` while any `block` flag is still open, so both functions follow the same rule.
 
