@@ -15,6 +15,9 @@ ceiling_cents: 183600
 # Open question: for self-employed people, the floor and ceiling may use gross income or
 # income net of business expenses. The engine computes both and never picks one.
 
+# Business mileage, for the expense of driving to start shifts (IRS 2026 standard rate)
+mileage_rate_cents_per_mile: 72.5
+
 # Auditor
 low_confidence_threshold: 0.8     # values read below this need Maria to confirm them
 deposit_window_days: 5            # a payout's bank deposit lands 0-5 days after its period ends
@@ -30,3 +33,6 @@ sources:
   - name: HHS ASPE, 2026 Poverty Guidelines (FPL chart), household of 1 = $15,960
     url: https://aspe.hhs.gov/sites/default/files/documents/b1bfa16b20ae9b89d525bc35de7c1643/detailed-guidelines-2026.pdf
     supports: [ceiling_cents]
+  - name: IRS, 2026 business standard mileage rate, 72.5 cents a mile (IR-2025-128)
+    url: https://www.irs.gov/newsroom/irs-sets-2026-business-standard-mileage-rate-at-725-cents-per-mile-up-25-cents
+    supports: [mileage_rate_cents_per_mile]

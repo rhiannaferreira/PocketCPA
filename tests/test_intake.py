@@ -145,7 +145,7 @@ def test_mileage_total_that_does_not_add_up_is_flagged():
 
 
 def test_phone_bill_business_share():
-    bill = {"vendor": F("Bayline Wireless"), "category": F("phone"), "date": F("2026-05-31"),
+    bill = {"vendor": F("Bayline Wireless"), "category": "phone", "date": F("2026-05-31"),
             "total_amount": F("40.00", "$40.00"), "business_share_percent": F("30", "30%"),
             "embedded_instructions": []}
     r = intake.process(DOCS / "phone-2026-05.png", client=FakeClient("receipt", bill))
@@ -159,3 +159,12 @@ def test_answer_key_totals_match_the_plan():
     assert m["2026-03"]["gross_stated_cents"] == 61200 and m["2026-03"]["gross_verified_cents"] == 53100
     assert m["2026-04"]["work_hours_verified"] + m["2026-04"]["volunteer_hours"] == 82
     assert m["2026-05"]["net_cents"] == 65000
+
+
+def test_unprinted_values_do_not_lower_confidence():
+    bill = {"vendor": F("Bayline Wireless"), "category": "phone", "date": F("2026-05-31"),
+            "total_amount": F("40.00", "$40.00"), "business_share_percent": F("", "", conf=0.2),
+            "embedded_instructions": []}
+    r = intake.process(DOCS / "phone-2026-05.png", client=FakeClient("receipt", bill))
+    assert not any(f["check"] == "low_confidence" for f in r.flags)
+    assert list(r.expenses[0]["sources"]) == ["total_amount"]
