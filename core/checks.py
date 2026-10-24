@@ -1,8 +1,10 @@
 """The Auditor: checks that turn suspicious evidence into Flags, each with one question for Maria.
 
 Pure functions over ledger rows: no network, no model calls. A check never changes a value; it
-only asks. Open flags with severity "block" hold up the packet (packet_ready); "warn" flags are
-still asked, and best_month still skips any month an open flag touches.
+only asks. A flag is "block" when leaving it open could put an untrue number in the packet:
+open block flags hold up the packet (packet_ready) and their months are skipped (best_month).
+An unexplained deposit is only "warn": it may not be gig income, so it is asked and listed on
+the packet with Maria's answer (list_warnings) rather than hidden.
 
 A flag's entity_ids are typed so ids from different tables can't collide: first the rows it is
 about (doc:, inc:, act:, exp:, dep:), then the months whose result it could change
@@ -23,8 +25,8 @@ from datetime import timedelta
 from typing import Iterable, Mapping, Sequence, TypeVar, Union
 
 from core.adapters import work_activity_id
-from core.corridor import (BLOCK, Rules, as_date, blocking, dollars, hours_text, income_month, month_label,
-                           month_of, ref, summarize_month, unref)
+from core.corridor import (BLOCK, WARN, Rules, as_date, blocking, dollars, hours_text, income_month,
+                           month_label, month_of, ref, summarize_month, unref)
 from core.schemas import ActivityEntry, Deposit, Document, Expense, Flag, IncomeEntry, MonthSummary
 
 Row = Union[IncomeEntry, ActivityEntry, Expense]
@@ -43,6 +45,10 @@ INSTRUCTION_PATTERNS = tuple(re.compile(p, re.I) for p in (
     r"\bsend\b.{0,60}\b(routing number|account number|bank account|password|social security)",
 ))
 YES, NO = {"yes", "y", "true"}, {"no", "n", "false"}
+WARNING_LABELS = {"deposit_without_payout": "Unexplained deposit"}
+WARNING_ANSWERS = {  # (no, yes) to the flag's question
+    "deposit_without_payout": ("it is pay for work", "it is not pay for work, such as a gift or a refund"),
+}
 
 
 # ---------- helpers
@@ -130,7 +136,7 @@ def _same_payout(a: IncomeEntry, b: IncomeEntry) -> bool:
 def payout_without_deposit(income: Sequence[IncomeEntry], deposits: Sequence[Deposit], rules: Rules) -> list[Flag]:
     """A payout with no deposit from the same platform, same amount (±tolerance), 0-N days after the period."""
     return [_flag(
-        "payout_without_deposit", "warn", [row_ref(e)], [income_month(e)],
+        "payout_without_deposit", BLOCK, [row_ref(e)], [income_month(e)],
         f"No {e.platform} deposit of about {dollars(e.gross_cents)} arrived within "
         f"{rules.deposit_window_days} days after {day_label(e.period_end)}.",
         f"We couldn't find a bank deposit for your {_payout_label(e)}; was it paid somewhere else, "
@@ -147,8 +153,8 @@ def deposit_without_payout(income: Sequence[IncomeEntry], deposits: Sequence[Dep
         day = as_date(d.date)
         months = {month_of(day), month_of(day - timedelta(days=rules.deposit_window_days))}
         flags.append(_flag(
-            "deposit_without_payout", "warn", [ref("dep", d.id)], months,
-            f"The {dollars(d.amount_cents)} deposit on {day_label(day)} ({d.description}) matches no payout on file.",
+            "deposit_without_payout", WARN, [ref("dep", d.id)], months,
+            f"{dollars(d.amount_cents)} deposit on {day_label(day)} ({d.description}) matches no payout on file.",
             f"Is the {dollars(d.amount_cents)} deposit on {day_label(day)} ({d.description}) something other "
             "than pay for work, like a gift or a refund?"))
     return flags
@@ -172,7 +178,7 @@ def low_confidence(income: Sequence[IncomeEntry], activities: Sequence[ActivityE
                    expenses: Sequence[Expense], rules: Rules) -> list[Flag]:
     threshold = rules.low_confidence_threshold
     return [_flag(
-        "low_confidence", "warn", [row_ref(r)], [row_month(r)],
+        "low_confidence", BLOCK, [row_ref(r)], [row_month(r)],
         f"{r.id} was read with {r.confidence:.0%} confidence, below the {threshold:.0%} threshold.",
         f"We read {_describe(r)} but aren't sure; is that right?")
         for r in (*income, *activities, *expenses) if r.confidence < threshold]
@@ -227,6 +233,23 @@ def packet_ready(flags: Iterable[Flag]) -> tuple[bool, list[str]]:
     """Whether the packet can be built: no open flag with severity "block". Returns their messages."""
     messages = [f.message for f in blocking(flags)]
     return not messages, messages
+
+
+def list_warnings(flags: Iterable[Flag], answers: Mapping[str, str | bool] | None = None) -> list[str]:
+    """One packet line per warning, answered or not, so it is shown rather than hidden.
+
+    answers maps a flag id to Maria's yes/no answer to that flag's question.
+    """
+    answers = answers or {}
+    return [f"{WARNING_LABELS.get(f.kind, f.kind.replace('_', ' ').capitalize())}: {f.message} "
+            f"Maria's answer: {_answer_text(f.kind, answers.get(f.id))}."
+            for f in flags if f.severity == WARN]
+
+
+def _answer_text(kind: str, answer: str | bool | None) -> str:
+    if answer is None:
+        return "not answered yet"
+    return WARNING_ANSWERS.get(kind, ("no", "yes"))[parse_answer(answer)]
 
 
 # ---------- Maria answers

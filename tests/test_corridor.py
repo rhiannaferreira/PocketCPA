@@ -20,7 +20,7 @@ def june(gross_cents=0, expenses_cents=0, work_hours=0.0, **activities):
     return summarize_month("2026-06", inc, act, exp, RULES)
 
 
-def open_flag(*entity_ids, severity="warn"):
+def open_flag(*entity_ids, severity="block"):
     return Flag("f1", "low_confidence", severity, "test", list(entity_ids), "open", "Is it right?")
 
 
@@ -94,7 +94,7 @@ def test_maria_best_month_is_may(maria_months):
     assert choice.month == "2026-05"
     assert choice.explanation.startswith("Build the packet on May 2026: it meets the requirement whether")
     assert "April 2026 also qualifies; May 2026 is more recent." in choice.explanation
-    assert "Skipped March 2026: open questions touch it." in choice.explanation
+    assert "Skipped March 2026: blocking questions touch it." in choice.explanation
 
 
 # ---------- thresholds, both readings
@@ -202,12 +202,18 @@ def test_best_month_skips_a_month_named_by_an_open_flag():
     months = [replace(june(70000), month=m) for m in ("2026-05", "2026-06")]
     choice = best_month(months, [open_flag("inc:i1", "month:2026-06")])
     assert choice.month == "2026-05"
-    assert "Skipped June 2026: open questions touch it." in choice.explanation
-    assert "must be answered before the packet can be built" not in choice.explanation  # a warning only
+    assert "Skipped June 2026: blocking questions touch it." in choice.explanation
+    assert "1 blocking question must be answered before the packet can be built." in choice.explanation
+
+
+def test_a_warning_does_not_skip_its_month():
+    months = [replace(june(70000), month=m) for m in ("2026-05", "2026-06")]
+    choice = best_month(months, [open_flag("dep:d1", "month:2026-06", severity="warn")])
+    assert choice.month == "2026-06" and "Skipped" not in choice.explanation
 
 
 def test_best_month_counts_the_blocking_questions():
-    flags = [open_flag("month:2026-06", severity="block"), open_flag("month:2026-07")]
+    flags = [open_flag("month:2026-06"), open_flag("month:2026-07", severity="warn")]
     choice = best_month([june(70000)], flags)
     assert choice.explanation.endswith("1 blocking question must be answered before the packet can be built.")
 
@@ -236,4 +242,4 @@ def test_best_month_returns_none_when_nothing_qualifies():
 
 def test_best_month_returns_none_when_every_qualifying_month_is_flagged():
     choice = best_month([june(70000)], [open_flag("month:2026-06")])
-    assert choice.month is None and "June 2026 would qualify, but open questions touch it" in choice.explanation
+    assert choice.month is None and "June 2026 would qualify, but blocking questions touch it" in choice.explanation

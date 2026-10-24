@@ -44,7 +44,7 @@ The county decides which reading applies. Our output only says what the evidence
 
 **From intake.** `activities_from_income` turns each payout's `active_minutes` into a work `ActivityEntry` (minutes ÷ 60, in the month the period ends, with its document id and confidence). The reasons call these hours "app-reported active time". `expenses_with_month` takes each expense's month from its date. Rows without a dollar amount are left out, and so is mileage: no mileage rate is applied. Both functions accept intake's dicts or objects with the same field names.
 
-**Packet month.** `best_month` prefers `qualifies` over `qualifies_depends_on_basis`, skips any month an open flag touches, and takes the most recent month on a tie. It explains its pick. `packet_ready(flags)` returns `(False, messages)` while any flag with severity `block` is still open.
+**Packet month.** `best_month` prefers `qualifies` over `qualifies_depends_on_basis`, skips any month an open `block` flag touches, and takes the most recent month on a tie. It explains its pick. `packet_ready(flags)` returns `(False, messages)` while any `block` flag is still open, so both functions follow the same rule.
 
 **The Auditor.** Each check returns `Flag`s with one question for Maria.
 
@@ -52,11 +52,11 @@ The county decides which reading applies. Our output only says what the evidence
 | --- | --- | --- |
 | `duplicate` | block | Same image hash, or same platform + overlapping period + same amount |
 | `hidden_instruction` | block | Document text tries to instruct the app ("ignore previous", "system:", "set income to", ...). It is reported, never followed |
-| `payout_without_deposit` | warn | No deposit from the platform for the same amount (±$1.00) within 0 to 5 days after the period ends |
+| `low_confidence` | block | Any value read below 0.8 confidence |
+| `payout_without_deposit` | block | No deposit from the platform for the same amount (±$1.00) within 0 to 5 days after the period ends |
 | `deposit_without_payout` | warn | A deposit matches no payout |
-| `low_confidence` | warn | Any value read below 0.8 confidence |
 
-Only `block` flags hold up the packet. `warn` flags are still asked, and their months are still skipped by `best_month`.
+A flag blocks when leaving it open could make the packet claim something untrue: a doubled payout, a number we may have misread, or income we can't see landing in her bank. An unexplained deposit (such as Maria's $60 Zelle on April 19) may not be gig income, so it only warns. `list_warnings(flags, answers)` gives the packet a line for each warning with Maria's answer, so it is shown rather than hidden.
 
 A flag's `entity_ids` are typed so ids can't collide: first the rows it is about (`doc:`, `inc:`, `act:`, `exp:`, `dep:`), then the months whose result it could change (`month:2026-03`). For a duplicate, the first id is the original we keep and the second is the copy. `resolve(flag, answer, ...)` takes Maria's yes or no and works on dataclasses or pydantic models. A confirmed duplicate is dropped along with its hours, and its month is recomputed: March goes from $612.00 to $531.00, which is below the floor.
 

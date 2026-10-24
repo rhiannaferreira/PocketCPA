@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 import yaml
 
-from core.checks import packet_ready, resolve, run_all_checks
+from core.checks import list_warnings, packet_ready, resolve, run_all_checks
 from core.corridor import (Rules, as_date, best_month, dollars, flag_touches, hours_text, month_label,
                            summarize_month, summarize_months)
 from core.schemas import Flag
@@ -85,11 +85,12 @@ def _matching_deposits(ev: Evidence) -> list:
 # ---------- running
 
 def run_case(case: Case, rules: Rules) -> Outcome:
-    ev, flags, resolved = case.evidence, _checks(case.evidence, rules, ()), set()
+    ev, flags, resolved, answers = case.evidence, _checks(case.evidence, rules, ()), set(), {}
     for step in case.answers:
         flag = next((f for f in flags if f.kind == step["kind"] and f.status == "open"), None)
         if flag is None:
             return _fail(case, f"no open {step['kind']} flag to answer")
+        answers[flag.id] = step["answer"]
         r = resolve(flag, step["answer"], ev.income, ev.activities, ev.expenses, rules)
         ev = replace(ev, income=r.income, activities=r.activities, expenses=r.expenses)
         if r.flag.status == "resolved":
@@ -111,6 +112,7 @@ def run_case(case: Case, rules: Rules) -> Outcome:
         details.append(choice.explanation)
     if "packet_ready" in want:
         details += [f"blocking: {m}" for m in packet_ready(open_flags)[1]]
+        details += [f"on the packet: {w}" for w in list_warnings(flags, answers)]
     return Outcome(case, _show_all(want), _show_all(got), want == got, details)
 
 

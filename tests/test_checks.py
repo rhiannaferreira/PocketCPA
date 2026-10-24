@@ -86,8 +86,28 @@ def test_with_questions_still_open_the_packet_month_is_may(sample):
     choice = best_month(summarize_months(sample.income, sample.activities, sample.expenses, RULES),
                         [f for f in flags if f.status == "open"])
     assert choice.month == "2026-05"
-    assert "Skipped March 2026 and April 2026" in choice.explanation
+    assert "Skipped March 2026: blocking questions touch it." in choice.explanation
+    assert "April 2026 also qualifies; May 2026 is more recent." in choice.explanation  # the Zelle only warns
     assert "2 blocking questions must be answered before the packet can be built." in choice.explanation
+
+
+def test_the_60_dollar_zelle_falls_in_april_so_may_stays_the_packet_month(sample):
+    flags = all_flags(sample)
+    [zelle] = [f for f in flags if f.kind == "deposit_without_payout"]
+    assert [id for kind, id in map(unref, zelle.entity_ids) if kind == "month"] == ["2026-04"]
+    assert zelle.severity == "warn"
+    choice = best_month(summarize_months(sample.income, sample.activities, sample.expenses, RULES),
+                        [f for f in flags if f.status == "open"])
+    assert choice.month == "2026-05"
+
+
+@pytest.mark.parametrize("kind,severity", [
+    ("duplicate", "block"), ("hidden_instruction", "block"), ("low_confidence", "block"),
+    ("payout_without_deposit", "block"), ("deposit_without_payout", "warn"),
+])
+def test_anything_that_could_put_an_untrue_number_in_the_packet_blocks(sample, kind, severity):
+    sample.income.append(payout("odd", confidence=0.5))  # adds a low-confidence and an unpaid payout
+    assert {f.severity for f in all_flags(sample) if f.kind == kind} == {severity}
 
 
 
@@ -114,9 +134,42 @@ def test_packet_ready_with_no_flags_and_with_only_resolved_blocking_flags(sample
     assert checks.packet_ready(resolved) == (True, [])
 
 
+def test_low_confidence_and_unpaid_payouts_hold_up_the_packet():
+    ev = Evidence(income=[payout(confidence=0.5)])
+    ready, messages = checks.packet_ready(all_flags(ev))
+    assert not ready and len(messages) == 2
+
+
 def test_packet_ready_reads_pydantic_flags(sample):
     flags = [PydFlag(**asdict(f)) for f in all_flags(sample)]
     assert checks.packet_ready(flags)[0] is False
+
+
+
+# ---------- list_warnings
+
+ZELLE_LINE = "Unexplained deposit: $60.00 deposit on Apr 19 (ZELLE FROM R DELGADO) matches no payout on file."
+
+
+def test_an_unanswered_warning_is_listed_not_hidden(sample):
+    assert checks.list_warnings(all_flags(sample)) == [f"{ZELLE_LINE} Maria's answer: not answered yet."]
+
+
+def test_an_answered_warning_stays_on_the_packet_with_her_answer(sample):
+    zelle = next(f for f in all_flags(sample) if f.kind == "deposit_without_payout")
+    done = resolve(zelle, "yes", sample.income, sample.activities, sample.expenses, RULES).flag
+    assert checks.list_warnings([done], {zelle.id: "yes"}) == [
+        f"{ZELLE_LINE} Maria's answer: it is not pay for work, such as a gift or a refund."]
+    assert checks.list_warnings([zelle], {zelle.id: "no"}) == [f"{ZELLE_LINE} Maria's answer: it is pay for work."]
+
+
+def test_blocking_flags_are_not_listed_as_warnings():
+    assert checks.list_warnings(checks.payout_without_deposit([payout()], [], RULES)) == []
+
+
+def test_list_warnings_reads_pydantic_flags(sample):
+    flags = [PydFlag(**asdict(f)) for f in all_flags(sample)]
+    assert checks.list_warnings(flags)[0].startswith("Unexplained deposit: $60.00 deposit on Apr 19")
 
 
 # ---------- duplicate

@@ -45,9 +45,9 @@ cases:
     expect: {month: "2026-06", status: qualifies_depends_on_basis, under_ceiling_gross: false, under_ceiling_net: true}
 
   # ---- payouts vs deposits
-  - name: "Payout with no bank deposit"
+  - name: "Payout with no bank deposit blocks the packet"
     income: [{id: i1, period_start: 2026-06-01, period_end: 2026-06-07, gross_cents: 12000}]
-    expect: {flags: [payout_without_deposit]}
+    expect: {flags: [payout_without_deposit], packet_ready: false}
 
   - name: "Deposit 6 days after the period does not match"
     income: [{id: i1, period_start: 2026-06-01, period_end: 2026-06-07, gross_cents: 12000}]
@@ -90,10 +90,10 @@ cases:
     expect: {month: "2026-06", status: below_floor, gross_cents: 45000, flags: [hidden_instruction]}
 
   # ---- confidence
-  - name: "Value read with 62% confidence"
+  - name: "Value read with 62% confidence blocks the packet"
     income: [{id: i1, period_start: 2026-06-01, period_end: 2026-06-07, gross_cents: 12000, confidence: 0.62}]
     deposits: matching
-    expect: {flags: [low_confidence]}
+    expect: {flags: [low_confidence], packet_ready: false}
 
   - name: "Confidence exactly 0.8 is not low"
     income: [{id: i1, period_start: 2026-06-01, period_end: 2026-06-07, gross_cents: 12000, confidence: 0.8}]
@@ -107,6 +107,13 @@ cases:
       - {id: jul, period_start: 2026-07-01, period_end: 2026-07-31, gross_cents: 70000, confidence: 0.5}
     deposits: matching
     expect: {flags: [low_confidence], best_month: "2026-06"}
+
+  - name: "Unexplained deposit warns but does not block"
+    income: [{id: jun, period_start: 2026-06-01, period_end: 2026-06-30, gross_cents: 70000}]
+    deposits:
+      - {id: d1, date: 2026-07-02, amount_cents: 70000}
+      - {id: d2, date: 2026-06-19, amount_cents: 6000, description: "ZELLE FROM R DELGADO"}
+    expect: {flags: [deposit_without_payout], best_month: "2026-06", packet_ready: true}
 
   - name: "Packet prefers 'qualifies' to 'depends on basis'"
     income:

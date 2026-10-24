@@ -19,7 +19,7 @@ from core.schemas import ActivityEntry, Expense, Flag, IncomeEntry, MonthSummary
 RULES_PATH = Path(__file__).with_name("rules.yaml")
 ACTIVITY_KINDS = ("work", "school", "volunteer")
 QUALIFYING = ("qualifies", "qualifies_depends_on_basis")  # in order of preference
-BLOCK = "block"  # the flag severity that holds up the packet
+BLOCK, WARN = "block", "warn"  # flag severities; only block holds up the packet and skips a month
 
 Status = Literal["qualifies", "qualifies_depends_on_basis", "below_floor", "above_ceiling"]
 
@@ -254,10 +254,10 @@ def blocking(flags: Iterable[Flag]) -> list[Flag]:
 def best_month(summaries: Sequence[MonthSummary], open_flags: Sequence[Flag]) -> MonthChoice:
     """Pick the month to build the packet on.
 
-    Prefers "qualifies" over "qualifies_depends_on_basis", skips months touched by an open flag
-    and breaks ties on the most recent month.
+    Prefers "qualifies" over "qualifies_depends_on_basis", skips months touched by an open
+    blocking flag (the same rule as packet_ready) and breaks ties on the most recent month.
     """
-    open_flags = [f for f in open_flags if f.status == "open"]
+    open_flags = blocking(open_flags)
     qualifying = [s for s in summaries if s.status in QUALIFYING]
     blocked = [s for s in qualifying if any(flag_touches(f, s) for f in open_flags)]
     usable = [s for s in qualifying if s not in blocked]
@@ -283,7 +283,7 @@ def _explain_pick(pick: MonthSummary, usable: list[MonthSummary], blocked: list[
     if weaker:
         lines.append(f"{_months(weaker)} {_verb(weaker, 'qualif')} under only one reading of income.")
     if blocked:
-        lines.append(f"Skipped {_months(blocked)}: open questions touch {_pronoun(blocked)}.")
+        lines.append(f"Skipped {_months(blocked)}: blocking questions touch {_pronoun(blocked)}.")
     lines += _blocking_note(open_flags)
     return " ".join(lines)
 
@@ -293,7 +293,7 @@ def _explain_none(summaries: Sequence[MonthSummary], blocked: list[MonthSummary]
     if not summaries:
         return "No month has any evidence yet."
     if blocked:
-        lines = [f"No month can be used yet: {_months(blocked)} would qualify, but open questions "
+        lines = [f"No month can be used yet: {_months(blocked)} would qualify, but blocking questions "
                  f"touch {_pronoun(blocked)}."]
         return " ".join(lines + _blocking_note(open_flags))
     status_text = {"below_floor": "below the floor", "above_ceiling": "above the income ceiling"}
