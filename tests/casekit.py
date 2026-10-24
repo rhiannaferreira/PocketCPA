@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 import yaml
 
-from core.checks import resolve, run_all_checks
+from core.checks import packet_ready, resolve, run_all_checks
 from core.corridor import (Rules, as_date, best_month, dollars, flag_touches, hours_text, month_label,
                            summarize_month, summarize_months)
 from core.schemas import Flag
@@ -109,6 +109,8 @@ def run_case(case: Case, rules: Rules) -> Outcome:
         details += [f"{f.kind}: {f.question_for_user}" for f in shown]
     if "best_month" in want:
         details.append(choice.explanation)
+    if "packet_ready" in want:
+        details += [f"blocking: {m}" for m in packet_ready(open_flags)[1]]
     return Outcome(case, _show_all(want), _show_all(got), want == got, details)
 
 
@@ -126,6 +128,8 @@ def _actual(key: str, summary, open_flags: list[Flag], packet_month: Optional[st
         return sorted(f.kind for f in open_flags)
     if key == "best_month":
         return packet_month
+    if key == "packet_ready":
+        return packet_ready(open_flags)[0]
     raise KeyError(f"unknown expectation {key!r}")
 
 
@@ -157,6 +161,8 @@ def _show(key: str, value: Any) -> str:
         return "flags: " + (", ".join(value) or "none")
     if key == "best_month":
         return f"packet: {month_label(value) if value else 'none'}"
+    if key == "packet_ready":
+        return "ready" if value else "blocked"
     if key in BOOL_TEXT:
         return BOOL_TEXT[key][bool(value)]
     return str(value)

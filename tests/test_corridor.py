@@ -20,8 +20,8 @@ def june(gross_cents=0, expenses_cents=0, work_hours=0.0, **activities):
     return summarize_month("2026-06", inc, act, exp, RULES)
 
 
-def open_flag(*entity_ids):
-    return Flag("f1", "low_confidence", "warn", "test", list(entity_ids), "open", "Is it right?")
+def open_flag(*entity_ids, severity="warn"):
+    return Flag("f1", "low_confidence", severity, "test", list(entity_ids), "open", "Is it right?")
 
 
 # ---------- rules
@@ -191,7 +191,13 @@ def test_best_month_skips_a_month_named_by_an_open_flag():
     choice = best_month(months, [open_flag("inc:i1", "month:2026-06")])
     assert choice.month == "2026-05"
     assert "Skipped June 2026: open questions touch it." in choice.explanation
-    assert "1 open question must be answered before the packet can be built." in choice.explanation
+    assert "must be answered before the packet can be built" not in choice.explanation  # a warning only
+
+
+def test_best_month_counts_the_blocking_questions():
+    flags = [open_flag("month:2026-06", severity="block"), open_flag("month:2026-07")]
+    choice = best_month([june(70000)], flags)
+    assert choice.explanation.endswith("1 blocking question must be answered before the packet can be built.")
 
 
 def test_untyped_ids_do_not_touch_a_month():

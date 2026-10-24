@@ -24,12 +24,12 @@ cases:
   - name: "Auditor raises the answer key's flags"
     expect: {flags: [deposit_without_payout, duplicate, hidden_instruction]}
 
-  - name: "Packet month with questions still open"
-    expect: {best_month: "2026-05"}
+  - name: "Packet held up by 2 blocking questions"
+    expect: {best_month: "2026-05", packet_ready: false}
 
   - name: "Packet month after Maria answers all three"
     answers:
       - {kind: duplicate, answer: "yes"}                # same payout uploaded twice
       - {kind: deposit_without_payout, answer: "yes"}   # the $60 Zelle was a gift, not pay
       - {kind: hidden_instruction, answer: "yes"}       # a real letter; its hidden text stays ignored
-    expect: {flags: [], best_month: "2026-05"}
+    expect: {flags: [], best_month: "2026-05", packet_ready: true}

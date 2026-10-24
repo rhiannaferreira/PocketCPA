@@ -1,7 +1,8 @@
 """The Auditor: checks that turn suspicious evidence into Flags, each with one question for Maria.
 
 Pure functions over ledger rows: no network, no model calls. A check never changes a value; it
-only asks. Every open flag blocks the packet; severity only orders them on the board.
+only asks. Open flags with severity "block" hold up the packet (packet_ready); "warn" flags are
+still asked, and best_month still skips any month an open flag touches.
 
 A flag's entity_ids are typed so ids from different tables can't collide: first the rows it is
 about (doc:, inc:, act:, exp:, dep:), then the months whose result it could change
@@ -21,8 +22,8 @@ from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Iterable, Mapping, Sequence, TypeVar, Union
 
-from core.corridor import (Rules, as_date, dollars, hours_text, income_month, month_label, month_of, ref,
-                           summarize_month, unref)
+from core.corridor import (BLOCK, Rules, as_date, blocking, dollars, hours_text, income_month, month_label,
+                           month_of, ref, summarize_month, unref)
 from core.schemas import ActivityEntry, Deposit, Document, Expense, Flag, IncomeEntry, MonthSummary
 
 Row = Union[IncomeEntry, ActivityEntry, Expense]
@@ -91,7 +92,7 @@ def duplicates(documents: Sequence[Document], income: Sequence[IncomeEntry],
     for original, copy in _same_image_pairs(documents):
         copied_docs.add(frozenset((original.id, copy.id)))
         flags.append(_flag(
-            "duplicate", "block", [ref("doc", original.id), ref("doc", copy.id)],
+            "duplicate", BLOCK, [ref("doc", original.id), ref("doc", copy.id)],
             {row_month(r) for r in rows if r.document_id == copy.id},
             f"{copy.id} is the same image as {original.id}.",
             "These two uploads are the same picture; did you upload it twice by mistake?"))
@@ -103,7 +104,7 @@ def duplicates(documents: Sequence[Document], income: Sequence[IncomeEntry],
         if original is None or frozenset((original.document_id, copy.document_id)) in copied_docs:
             continue
         flags.append(_flag(
-            "duplicate", "block", [row_ref(original), row_ref(copy)], [income_month(copy)],
+            "duplicate", BLOCK, [row_ref(original), row_ref(copy)], [income_month(copy)],
             f"{copy.id} repeats {original.id}: same platform, overlapping dates, same amount.",
             f"Is the {_payout_label(copy)} the same payout uploaded twice?"))
     return flags
@@ -193,7 +194,7 @@ def hidden_instruction(document_id: str, raw_text: str, months: Iterable[str] = 
         return []
     quoted = "; ".join(f'"{x[:60]}"' for x in found[:3])
     return [_flag(
-        "hidden_instruction", "block", [ref("doc", document_id)], months,
+        "hidden_instruction", BLOCK, [ref("doc", document_id)], months,
         f"{document_id} contains text that tries to instruct the app ({quoted}); it was ignored and changed nothing.",
         "This document contains text that tries to give the app instructions, which we ignored; "
         "is it a real document you received?")]
@@ -217,6 +218,14 @@ def run_all_checks(documents: Sequence[Document], income: Sequence[IncomeEntry],
         flags += hidden_instruction(doc_id, text, {row_month(r) for r in rows if r.document_id == doc_id})
     done = set(resolved_ids)
     return [updated(f, status="resolved") if f.id in done else f for f in flags]
+
+
+# ---------- the packet
+
+def packet_ready(flags: Iterable[Flag]) -> tuple[bool, list[str]]:
+    """Whether the packet can be built: no open flag with severity "block". Returns their messages."""
+    messages = [f.message for f in blocking(flags)]
+    return not messages, messages
 
 
 # ---------- Maria answers

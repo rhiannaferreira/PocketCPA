@@ -86,7 +86,36 @@ def test_with_questions_still_open_the_packet_month_is_may(sample):
                         [f for f in flags if f.status == "open"])
     assert choice.month == "2026-05"
     assert "Skipped March 2026 and April 2026" in choice.explanation
-    assert "3 open questions must be answered before the packet can be built." in choice.explanation
+    assert "2 blocking questions must be answered before the packet can be built." in choice.explanation
+
+
+
+# ---------- packet_ready
+
+def test_packet_is_not_ready_while_blocking_flags_are_open(sample):
+    ready, messages = checks.packet_ready(all_flags(sample))
+    assert not ready and len(messages) == 2
+    assert messages[0] == "earn-2026-03-w2b-p1 repeats earn-2026-03-w2a-p1: same platform, overlapping dates, same amount."
+    assert messages[1].startswith("county-letter-renewal contains text that tries to instruct the app")
+
+
+def test_packet_is_ready_once_blocking_flags_are_answered_even_with_warnings_open(sample):
+    flags = all_flags(sample)
+    done = {f.id for f in flags if f.kind in ("duplicate", "hidden_instruction")}
+    rerun = all_flags(sample, done)
+    assert [f.kind for f in rerun if f.status == "open"] == ["deposit_without_payout"]
+    assert checks.packet_ready(rerun) == (True, [])
+
+
+def test_packet_ready_with_no_flags_and_with_only_resolved_blocking_flags(sample):
+    assert checks.packet_ready([]) == (True, [])
+    resolved = [replace(f, status="resolved") for f in all_flags(sample)]
+    assert checks.packet_ready(resolved) == (True, [])
+
+
+def test_packet_ready_reads_pydantic_flags(sample):
+    flags = [PydFlag(**asdict(f)) for f in all_flags(sample)]
+    assert checks.packet_ready(flags)[0] is False
 
 
 # ---------- duplicate

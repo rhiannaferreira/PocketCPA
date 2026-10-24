@@ -19,6 +19,7 @@ from core.schemas import ActivityEntry, Expense, Flag, IncomeEntry, MonthSummary
 RULES_PATH = Path(__file__).with_name("rules.yaml")
 ACTIVITY_KINDS = ("work", "school", "volunteer")
 QUALIFYING = ("qualifies", "qualifies_depends_on_basis")  # in order of preference
+BLOCK = "block"  # the flag severity that holds up the packet
 
 Status = Literal["qualifies", "qualifies_depends_on_basis", "below_floor", "above_ceiling"]
 
@@ -234,6 +235,11 @@ def flag_touches(flag: Flag, summary: MonthSummary) -> bool:
     return ref("month", summary.month) in ids or any(ref("doc", d) in ids for d in summary.source_ids)
 
 
+def blocking(flags: Iterable[Flag]) -> list[Flag]:
+    """Open flags that hold up the packet."""
+    return [f for f in flags if f.status == "open" and f.severity == BLOCK]
+
+
 def best_month(summaries: Sequence[MonthSummary], open_flags: Sequence[Flag]) -> MonthChoice:
     """Pick the month to build the packet on.
 
@@ -267,7 +273,7 @@ def _explain_pick(pick: MonthSummary, usable: list[MonthSummary], blocked: list[
         lines.append(f"{_months(weaker)} {_verb(weaker, 'qualif')} under only one reading of income.")
     if blocked:
         lines.append(f"Skipped {_months(blocked)}: open questions touch {_pronoun(blocked)}.")
-    lines += _open_questions_note(open_flags)
+    lines += _blocking_note(open_flags)
     return " ".join(lines)
 
 
@@ -278,17 +284,17 @@ def _explain_none(summaries: Sequence[MonthSummary], blocked: list[MonthSummary]
     if blocked:
         lines = [f"No month can be used yet: {_months(blocked)} would qualify, but open questions "
                  f"touch {_pronoun(blocked)}."]
-        return " ".join(lines + _open_questions_note(open_flags))
+        return " ".join(lines + _blocking_note(open_flags))
     status_text = {"below_floor": "below the floor", "above_ceiling": "above the income ceiling"}
     found = "; ".join(f"{month_label(s.month)} is {status_text[s.status]}" for s in summaries)
     return f"No month on file meets the requirement yet: {found}."
 
 
-def _open_questions_note(open_flags: list[Flag]) -> list[str]:
-    n = len(open_flags)
+def _blocking_note(open_flags: list[Flag]) -> list[str]:
+    n = len(blocking(open_flags))
     if not n:
         return []
-    return [f"{n} open question{'s' if n != 1 else ''} must be answered before the packet can be built."]
+    return [f"{n} blocking question{'s' if n != 1 else ''} must be answered before the packet can be built."]
 
 
 def _months(summaries: list[MonthSummary]) -> str:
