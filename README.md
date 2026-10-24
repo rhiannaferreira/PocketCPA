@@ -4,7 +4,7 @@
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=...   # in .env, never committed
+cp .env.example .env           # then put your key in .env (never committed)
 python3 -m pytest              # offline tests
 ```
 
