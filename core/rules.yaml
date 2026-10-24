@@ -1,0 +1,32 @@
+# Medi-Cal community engagement rules used by core/corridor.py and core/checks.py.
+# Every number the coverage engine uses lives here; the Python hardcodes none.
+# Money is integer cents.
+
+effective: 2027-01-01             # first day the community engagement requirement applies
+
+# Adults 19-64 must show ONE of these for the month(s) the county looks at:
+floor_hours: 80                   # hours of work, school and volunteering combined
+floor_income_cents: 58000         # $580.00 = federal minimum wage ($7.25) x 80 hours
+
+# And stay at or under the income ceiling:
+# 138% FPL, household of 1, 2026: $15,960 x 1.38 / 12 = $1,835.40, which DHCS rounds up.
+ceiling_cents: 183600
+
+# Open question: for self-employed people, the floor and ceiling may use gross income or
+# income net of business expenses. The engine computes both and never picks one.
+
+# Auditor
+low_confidence_threshold: 0.8     # values read below this need Maria to confirm them
+deposit_window_days: 5            # a payout's bank deposit lands 0-5 days after its period ends
+deposit_tolerance_cents: 100      # payout and deposit may differ by up to $1.00
+
+sources:
+  - name: CMS, Community engagement overview (Public Law 119-21, section 71119)
+    url: https://www.medicaid.gov/medicaid/downloads/community-engagement-overview-slide.pdf
+    supports: [effective, floor_hours, floor_income_cents]
+  - name: CMS, Medicaid Community Engagement Requirement for Certain Individuals, interim final rule (CMS-2454-IFC), Federal Register, June 3, 2026
+    url: https://www.federalregister.gov/documents/2026/06/03/2026-11094/medicaid-program-community-engagement-requirement-for-certain-individuals
+    supports: [effective, floor_hours, floor_income_cents]
+  - name: HHS ASPE, 2026 Poverty Guidelines (FPL chart), household of 1 = $15,960
+    url: https://aspe.hhs.gov/sites/default/files/documents/b1bfa16b20ae9b89d525bc35de7c1643/detailed-guidelines-2026.pdf
+    supports: [ceiling_cents]

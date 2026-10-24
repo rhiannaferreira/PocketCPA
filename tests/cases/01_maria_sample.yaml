@@ -1,0 +1,35 @@
+title: "Maria's sample data, Feb-May 2026 (SAMPLE)"
+# SAMPLE DATA: Maria Delgado, Parcelo and every number here are fictional.
+# Rows are built from demo/data/answer_key.json and demo/data/nessie_seed.json (tests/fixtures.py),
+# the same data the sample photos were drawn from. Work hours are the app's active time.
+dataset: maria_sample
+
+cases:
+  - name: "Feb: $480 and 34 work hours"
+    expect: {month: "2026-02", status: below_floor, gross_cents: 48000, hours: 34, month_flags: []}
+
+  - name: "Mar as uploaded: week of Mar 8 counted twice"
+    expect: {month: "2026-03", gross_cents: 61200, month_flags: [duplicate]}
+
+  - name: "Mar after Maria confirms the duplicate"
+    answers: [{kind: duplicate, answer: "yes"}]
+    expect: {month: "2026-03", status: below_floor, gross_cents: 53100, hours: 40}
+
+  - name: "Apr: 58 work + 24 volunteer hours"
+    expect: {month: "2026-04", status: qualifies, hours: 82, month_flags: [deposit_without_payout]}
+
+  - name: "May: $720 gross, $70 expenses"
+    expect: {month: "2026-05", status: qualifies, gross_cents: 72000, net_cents: 65000, month_flags: []}
+
+  - name: "Auditor raises the answer key's flags"
+    expect: {flags: [deposit_without_payout, duplicate, hidden_instruction]}
+
+  - name: "Packet held up by 2 blocking questions"
+    expect: {best_month: "2026-05", packet_ready: false}
+
+  - name: "Packet month after Maria answers all three"
+    answers:
+      - {kind: duplicate, answer: "yes"}                # same payout uploaded twice
+      - {kind: deposit_without_payout, answer: "yes"}   # the $60 Zelle was a gift, not pay
+      - {kind: hidden_instruction, answer: "yes"}       # a real letter; its hidden text stays ignored
+    expect: {flags: [], best_month: "2026-05", packet_ready: true}
