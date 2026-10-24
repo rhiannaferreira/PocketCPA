@@ -1,0 +1,19 @@
+{
+  "_note": "CRS's published Cal Hacks sandbox test identity (not a real person). Replace from your Postman collection if it differs. Never put a real person's data here.",
+  "firstName": "KYLIA",
+  "middleName": "",
+  "lastName": "PAOLIMELLI",
+  "suffix": "",
+  "birthDate": "1920-01-01",
+  "ssn": "666285642",
+  "addresses": [
+    {
+      "borrowerResidencyType": "Current",
+      "addressLine1": "406 E JEMEZ ST",
+      "addressLine2": "",
+      "city": "HOBBS",
+      "state": "NM",
+      "postalCode": "882403443"
+    }
+  ]
+}

@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pocket CPA Audit Board</title>
+<style>
+/* System fonts only: nothing to download on venue Wi-Fi. */
+:root{
+  --paper:#f6f3ec; --card:#fffdf8; --ink:#1b1a17; --muted:#6b675e; --rule:#d9d3c5;
+  --ok:#1f7a4d; --warn:#a15c00; --alert:#b3261e; --info:#3a5a8c;
+  --ok-bg:#e6f2ea; --warn-bg:#fbf0de; --alert-bg:#fbe7e5; --info-bg:#e8eef7;
+  --accent:#1b1a17; --meter:#e9e3d6;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#15140f; --card:#1e1d17; --ink:#f1ece0; --muted:#a39d8f; --rule:#35322a;
+  --ok:#5ec48f; --warn:#e8a23d; --alert:#f0766c; --info:#8fb0e3;
+  --ok-bg:#16301f; --warn-bg:#3a2a10; --alert-bg:#3d1714; --info-bg:#18243a; --meter:#2c2a22; --accent:#f1ece0;
+}}
+:root[data-theme="dark"]{
+  --paper:#15140f; --card:#1e1d17; --ink:#f1ece0; --muted:#a39d8f; --rule:#35322a;
+  --ok:#5ec48f; --warn:#e8a23d; --alert:#f0766c; --info:#8fb0e3;
+  --ok-bg:#16301f; --warn-bg:#3a2a10; --alert-bg:#3d1714; --info-bg:#18243a; --meter:#2c2a22; --accent:#f1ece0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.45 var(--sans)}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 20px;padding:18px 24px 12px;border-bottom:2px solid var(--ink)}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+h1 small{font-weight:500;color:var(--muted);font-size:15px;margin-left:8px}
+.spacer{flex:1}
+.badge{font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--card);white-space:nowrap}
+.badge.live{border-color:var(--ok);color:var(--ok)} .badge.cached,.badge.replay{border-color:var(--warn);color:var(--warn)}
+.badge.fallback,.badge.down{border-color:var(--alert);color:var(--alert)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px}
+.badge.down .dot{background:var(--alert)} .badge.polling .dot{background:var(--warn)}
+.clock{font:600 14px var(--mono);color:var(--muted)}
+
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:16px 24px}
+.tile{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;min-width:0}
+.tile .label{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.tile .big{font:700 30px/1.15 var(--mono);margin-top:6px;font-variant-numeric:tabular-nums}
+.tile .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.meter{position:relative;height:12px;background:var(--meter);border-radius:6px;margin-top:10px;overflow:visible}
+.meter > i{position:absolute;inset:0 auto 0 0;border-radius:6px;background:var(--warn);transition:width .6s ease}
+.meter.met > i{background:var(--ok)}
+.meter > b{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);right:0}
+.verdict{margin:0 24px;padding:10px 14px;border-radius:8px;font-weight:600;display:none}
+.verdict.show{display:block} .verdict.warn{background:var(--warn-bg);color:var(--warn)} .verdict.ok{background:var(--ok-bg);color:var(--ok)}
+
+main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:16px 24px 24px}
+section{background:var(--card);border:1px solid var(--rule);border-radius:8px;min-width:0;display:flex;flex-direction:column;max-height:calc(100vh - 290px);min-height:380px}
+section > h2{margin:0;padding:12px 16px;border-bottom:1px solid var(--rule);font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between}
+section > h2 span{color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0}
+.feed{list-style:none;margin:0;padding:8px 10px 12px;overflow-y:auto;flex:1}
+.ev{border-left:4px solid var(--info);background:var(--info-bg);padding:8px 10px;border-radius:0 6px 6px 0;margin:6px 0;animation:in .35s ease}
+.ev.ok{border-color:var(--ok);background:var(--ok-bg)} .ev.warn{border-color:var(--warn);background:var(--warn-bg)}
+.ev.alert{border-color:var(--alert);background:var(--alert-bg)}
+.ev .meta{font:600 10.5px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px}
+.ev .sev{margin-left:auto}
+.ev.alert .sev{color:var(--alert)} .ev.warn .sev{color:var(--warn)} .ev.ok .sev{color:var(--ok)}
+.ev .sum{margin-top:3px}
+@keyframes in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.ev{animation:none}.meter>i{transition:none}}
+
+table.bids{width:100%;border-collapse:collapse;margin-top:8px;font:12.5px var(--mono);font-variant-numeric:tabular-nums}
+table.bids th{text-align:left;font-weight:600;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:3px 4px;border-bottom:1px solid var(--rule)}
+table.bids td{padding:4px;border-bottom:1px dashed var(--rule)}
+table.bids tr.win td{font-weight:700}
+.chip{font:600 10px var(--mono);text-transform:uppercase;padding:2px 5px;border-radius:3px;border:1px solid currentColor}
+.chip.eligible{color:var(--ok)} .chip.held_back{color:var(--warn)} .chip.excluded{color:var(--alert)}
+.note{font-size:12px;color:var(--muted);margin-top:6px}
+
+.cards{padding:10px 14px;border-bottom:1px solid var(--rule)}
+.cardrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin:6px 0 10px;font-size:13px}
+.cardrow .util{font:600 13px var(--mono)}
+.cardrow .bar{grid-column:1/-1;position:relative;height:8px;background:var(--meter);border-radius:4px}
+.cardrow .bar i{position:absolute;inset:0 auto 0 0;background:var(--ok);border-radius:4px;transition:width .5s}
+.cardrow .bar i.over{background:var(--warn)}
+.cardrow .bar b{position:absolute;left:30%;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.cardrow .meta{grid-column:1/-1;font-size:11.5px;color:var(--muted)}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 24px 24px;color:var(--muted);font-size:13px}
+.controls input{font:14px var(--sans);padding:7px 9px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink);min-width:0}
+.controls input[name=amount]{width:90px}
+button{font:600 13px var(--sans);padding:8px 12px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+.empty{color:var(--muted);font-size:13px;padding:14px 6px}
+
+@media (max-width:1000px){ main{grid-template-columns:1fr} section{max-height:none} .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:520px){ header,.tiles,main,.controls{padding-left:16px;padding-right:16px} .verdict{margin:0 16px} .tiles{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pocket CPA <small>audit board</small></h1>
+  <span class="clock" id="clock">loading…</span>
+  <span class="spacer"></span>
+  <span class="badge" id="bank">bank: …</span>
+  <span class="badge" id="crs">cards: …</span>
+  <span class="badge replay" id="replay" hidden>rehearsal replay</span>
+  <span class="badge" id="conn"><span class="dot"></span>connecting</span>
+</header>
+
+<div class="tiles">
+  <div class="tile"><div class="label">Verified earnings</div><div class="big" id="t-verified">$0</div><div class="sub" id="t-claimed">of $0 claimed on screenshots</div></div>
+  <div class="tile"><div class="label">Caught by the Auditor</div><div class="big" id="t-caught">0</div><div class="sub" id="t-caught-sub">duplicates, unexplained deposits, hidden instructions</div></div>
+  <div class="tile"><div class="label" id="l-hours">Medi-Cal path 1: hours</div><div class="big" id="t-hours">0 / 80</div>
+    <div class="meter" id="m-hours"><i style="width:0"></i><b></b></div></div>
+  <div class="tile"><div class="label" id="l-income">Medi-Cal path 2: earnings</div><div class="big" id="t-income">$0 / $580</div>
+    <div class="meter" id="m-income"><i style="width:0"></i><b></b></div></div>
+</div>
+<div class="verdict" id="verdict"></div>
+
+<main>
+  <section><h2>Verify <span>books: payouts vs bank</span></h2><ul class="feed" id="f-verify"><li class="empty">Waiting for screenshots…</li></ul></section>
+  <section><h2>Prove <span>Medi-Cal: 80 hours or $580</span></h2><ul class="feed" id="f-prove"><li class="empty">Waiting for verified records…</li></ul></section>
+  <section><h2>Save <span>cards and credit</span></h2>
+    <div class="cards" id="cards"></div>
+    <ul class="feed" id="f-save"><li class="empty">No purchases yet.</li></ul></section>
+</main>
+
+<form class="controls" id="pick" autocomplete="off">
+  <span>Try a purchase:</span>
+  <input name="merchant" placeholder="Shell #4410" required maxlength="80" aria-label="Merchant">
+  <input name="amount" type="number" step="0.01" min="0.01" placeholder="40" required aria-label="Amount in dollars">
+  <button type="submit">Ask Wallet</button>
+  <button type="button" class="ghost" id="approve" disabled>Maria approves</button>
+  <span class="spacer"></span>
+  <button type="button" class="ghost" id="crs-pull">Pull CRS</button>
+  <button type="button" class="ghost" id="reset">Reset demo</button>
+</form>
+
+<script>
+const COLUMN = {intake:'verify', bookkeeper:'verify', auditor:'verify', coordinator:'verify',
+                benefits:'prove', wallet:'save', crs:'save', system:null};
+const $ = id => document.getElementById(id);
+const money = x => '$' + Number(x||0).toLocaleString(undefined,{maximumFractionDigits:2});
+const cents = x => '$' + Number(x||0).toFixed(2);
+const dollarsOf = p => p.amount_cents != null ? p.amount_cents / 100 : (+p.amount_usd || 0);
+const CAUGHT = ['duplicate','missing','mismatch','deposit_without_payout','hidden_instruction'];
+const monthName = m => m ? new Date(m + '-01T12:00:00').toLocaleDateString(undefined,{month:'short', year:'numeric'}) : '';
+const pct = x => Math.round((x||0)*100) + '%';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let lastId = 0, seen = new Set(), totals, lastDecision = null, rule = {hours:80, income:580};
+function resetTotals(){ totals = {claimed:0, verified:0, caught:0, progress:null}; }
+resetTotals();
+
+function clearBoard(){
+  seen.clear(); lastId = 0; resetTotals(); lastDecision = null; $('approve').disabled = true;
+  $('f-verify').innerHTML = '<li class="empty">Waiting for screenshots…</li>';
+  $('f-prove').innerHTML = '<li class="empty">Waiting for verified records…</li>';
+  $('f-save').innerHTML = '<li class="empty">No purchases yet.</li>';
+  $('replay').hidden = true; renderTotals();
+}
+
+function renderTotals(){
+  $('t-verified').textContent = money(Math.round(totals.verified*100)/100);
+  $('t-claimed').textContent = 'of ' + money(totals.claimed) + ' claimed on screenshots';
+  $('t-caught').textContent = totals.caught;
+  const p = totals.progress;
+  const h = p ? +(+p.hours_verified).toFixed(1) : 0;
+  const inc = p ? (p.income_verified_cents != null ? p.income_verified_cents / 100 : +p.income_verified || 0) : 0;
+  const hn = p?.hours_needed ?? rule.hours;
+  const inn = p?.income_needed_cents != null ? p.income_needed_cents / 100 : (p?.income_needed ?? rule.income);
+  const mlabel = p?.month ? ' · ' + monthName(p.month) : '';
+  $('l-hours').textContent = 'Medi-Cal path 1: hours' + mlabel;
+  $('l-income').textContent = 'Medi-Cal path 2: earnings' + mlabel;
+  $('t-hours').textContent = `${h} / ${hn}`;
+  $('t-income').textContent = `${money(inc)} / ${money(inn)}`;
+  setMeter('m-hours', h / hn); setMeter('m-income', inc / inn);
+  const v = $('verdict');
+  if (!p){ v.className = 'verdict'; return; }
+  const met = h >= hn || inc >= inn;
+  const left = p.days_left != null ? `, ${p.days_left} days left in the month` : '';
+  const when = p.month ? monthName(p.month) + ': ' : '';
+  v.className = 'verdict show ' + (met ? 'ok' : 'warn');
+  v.textContent = met ? `${when}requirement met (${h >= hn ? 'hours' : 'earnings'} path).`
+    : `${when}short on both paths: ${+(hn - h).toFixed(1)} more hours or ${money(inn - inc)} more earnings${left}.`;
+}
+function setMeter(id, ratio){
+  const m = $(id); m.firstElementChild.style.width = Math.min(100, Math.max(0, ratio*100)) + '%';
+  m.classList.toggle('met', ratio >= 1);
+}
+
+function bidTable(d){
+  if (!d || !d.bids) return '';
+  const rows = d.bids.map(b => `<tr class="${d.winner && d.winner.card_id===b.card_id?'win':''}">
+    <td>${esc(b.name.replace(/ Card( by Citi)?$/,''))}</td><td>${cents(b.reward)}</td>
+    <td>${pct(b.util_before)}→${pct(b.util_after)}</td><td><span class="chip ${b.status}">${b.status.replace('_',' ')}</span></td></tr>`).join('');
+  return `<table class="bids"><tr><th>Card bid</th><th>Earns</th><th>Usage</th><th></th></tr>${rows}</table>
+    <div class="note">Category "${esc(d.category)}" is an estimate. Nothing is charged until Maria approves.</div>`;
+}
+function crsBlock(p){
+  if (!p.tradelines || !p.tradelines.length) return p.note ? `<div class="note">${esc(p.note)}</div>` : '';
+  const rows = p.tradelines.map(t => `<tr><td>${esc(t.creditor)}</td><td>${money(t.balance_usd)}</td><td>${money(t.limit_usd)}</td><td>${pct(t.utilization)}</td></tr>`).join('');
+  return `<table class="bids"><tr><th>Account (sandbox)</th><th>Balance</th><th>Limit</th><th>Usage</th></tr>${rows}</table>
+    <div class="note">${p.score?.score ? 'Score ' + esc(p.score.score) + ' · ' : ''}Sandbox credit file mapped to demo card rules.</div>`;
+}
+
+function addEvent(e){
+  if (seen.has(e.id)) return; seen.add(e.id); lastId = Math.max(lastId, e.id);
+  const p = e.payload || {};
+  if (e.agent === 'system' && e.kind === 'reset'){ clearBoard(); seen.add(e.id); lastId = e.id; loadState(); }
+  if (p.source === 'replay') $('replay').hidden = false;
+  if (e.agent === 'intake' && e.kind === 'extracted'){ totals.claimed += dollarsOf(p); }
+  if (e.agent === 'bookkeeper' && e.kind === 'match'){ totals.verified += dollarsOf(p); }
+  if (CAUGHT.includes(e.kind)){ totals.caught += 1; }
+  if (e.agent === 'benefits' && e.kind === 'progress'){ totals.progress = p; }
+  if (e.agent === 'wallet' && e.kind === 'decision' && p.winner){ lastDecision = p; $('approve').disabled = false; }
+  if (e.agent === 'wallet' && e.kind === 'charged'){ $('approve').disabled = true; lastDecision = null; }
+  if (['wallet','crs'].includes(e.agent)) loadState();
+  renderTotals();
+  const col = COLUMN[e.agent]; if (!col) return;
+  const feed = $('f-' + col); const empty = feed.querySelector('.empty'); if (empty) empty.remove();
+  const li = document.createElement('li'); li.className = 'ev ' + e.severity;
+  let extra = '';
+  if (e.agent === 'wallet' && e.kind === 'decision') extra = bidTable(p);
+  if (e.agent === 'crs' && e.kind === 'pull') extra = crsBlock(p);
+  if (p.question) extra += `<div class="note">Asks Maria: “${esc(p.question)}”</div>`;
+  if (p.evidence) extra += `<div class="note">Evidence: ${esc(typeof p.evidence === 'string' ? p.evidence : JSON.stringify(p.evidence))}</div>`;
+  li.innerHTML = `<div class="meta"><span>${esc(e.ts.slice(11,16))}</span><span>${esc(e.agent)} · ${esc(e.kind.replace(/_/g,' '))}</span><span class="sev">${esc(e.severity)}</span></div>
+                  <div class="sum">${esc(e.summary)}</div>${extra}`;
+  feed.prepend(li);
+}
+
+async function loadState(){
+  try{
+    const s = await (await fetch('/api/state')).json();
+    const c = s.config || {};
+    if (c.demo_now){
+      const d = new Date(c.demo_now);
+      $('clock').textContent = d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'}) +
+        ' · demo clock';
+    }
+    rule = {hours:+c.hours_needed || 80, income:+c.income_needed || 580};
+    $('bank').textContent = 'bank: ' + (c.bank || '—').replace(' (offline)','');
+    const mode = (c.crs_mode || 'fallback');
+    const crsMode = (s.cards[0]?.source || '').startsWith('crs') ? mode : (mode === 'fallback' ? 'fallback' : mode);
+    $('crs').className = 'badge ' + crsMode; $('crs').textContent = 'cards: ' + (crsMode === 'fallback' ? 'typed file' : 'CRS ' + crsMode);
+    $('cards').innerHTML = s.cards.map(k => `<div class="cardrow"><span>${esc(k.name.replace(/ Card( by Citi)?$/,''))}</span>
+      <span class="util">${pct(k.util)}</span><div class="bar"><i class="${k.util>0.3?'over':''}" style="width:${Math.min(100,k.util*100)}%"></i><b></b></div>
+      <span class="meta">${money(k.balance)} of ${money(k.limit)} · statement closes ${esc(k.closes_on.slice(5))} · from ${esc(k.source)}</span></div>`).join('')
+      + '<div class="note">Line marks 30% of the limit.</div>';
+    renderTotals();
+  }catch(err){ /* state appears after the first reset */ }
+}
+
+function setConn(kind, text){ const b = $('conn'); b.className = 'badge ' + kind; b.innerHTML = '<span class="dot"></span>' + text; }
+let es, pollTimer;
+function startPolling(){
+  if (pollTimer) return; setConn('polling', 'polling');
+  pollTimer = setInterval(async () => {
+    try{ const rows = await (await fetch('/events?after=' + lastId)).json();
+      if (rows.length === 0){ const all = await (await fetch('/events?after=0')).json();
+        if (all.length && all[all.length-1].id < lastId) clearBoard(); }
+      rows.forEach(addEvent);
+    }catch{ setConn('down','offline'); }
+  }, 2000);
+}
+function startStream(){
+  es = new EventSource('/stream?after=' + lastId);
+  let opened = false;
+  es.onopen = () => { opened = true; setConn('live', 'live'); if (pollTimer){ clearInterval(pollTimer); pollTimer = null; } };
+  es.addEventListener('agent_event', m => addEvent(JSON.parse(m.data)));
+  es.addEventListener('board_reset', () => clearBoard());
+  es.onerror = () => { if (!opened) { es.close(); startPolling(); } else setConn('polling','reconnecting'); };
+}
+
+$('pick').addEventListener('submit', async ev => {
+  ev.preventDefault(); const f = new FormData(ev.target);
+  await fetch('/api/wallet/pick', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({merchant: f.get('merchant'), amount: +f.get('amount')})});
+});
+$('approve').addEventListener('click', async () => {
+  if (!lastDecision) return; $('approve').disabled = true;
+  await fetch('/api/wallet/confirm', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({decision_id: lastDecision.decision_id})});
+});
+$('crs-pull').addEventListener('click', () => fetch('/api/crs/pull', {method:'POST'}));
+$('reset').addEventListener('click', async () => { if (confirm('Reset the demo to the start?')) await fetch('/api/demo/reset', {method:'POST'}); });
+
+loadState(); startStream();
+</script>
+</body>
+</html>

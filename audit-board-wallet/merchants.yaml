@@ -1,0 +1,28 @@
+# Merchant name keyword -> Pocket CPA category. First match wins, so put specific keys first.
+# Issuers really decide by merchant category code (MCC); this is an estimate and the UI says so.
+- {match: "valley gas", category: gas}
+- {match: "corner grocery", category: grocery}
+- {match: "bayline wireless", category: phone}
+- {match: "costco gas", category: gas_costco}
+- {match: "costco", category: costco}
+- {match: "shell", category: gas}
+- {match: "chevron", category: gas}
+- {match: "arco", category: gas}
+- {match: "76", category: gas}
+- {match: "valero", category: gas}
+- {match: "tesla supercharger", category: ev_charging}
+- {match: "walmart", category: superstore}
+- {match: "target", category: superstore}
+- {match: "safeway", category: grocery}
+- {match: "trader joe", category: grocery}
+- {match: "whole foods", category: grocery}
+- {match: "sprouts", category: grocery}
+- {match: "chipotle", category: dining}
+- {match: "taqueria", category: dining}
+- {match: "cafe", category: dining}
+- {match: "cvs", category: drugstore}
+- {match: "walgreens", category: drugstore}
+- {match: "pg&e", category: utilities}
+- {match: "netflix", category: streaming}
+- {match: "spotify", category: streaming}
+- {match: "amc", category: entertainment}
