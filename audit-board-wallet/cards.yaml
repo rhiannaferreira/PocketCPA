@@ -1,0 +1,94 @@
+# Card reward rules. Researched Oct 23, 2026. Re-verify before anyone uses this for real money.
+# Rates are decimals (0.05 = 5%). Categories are Pocket CPA's own names (see merchants.yaml),
+# not issuer MCCs, so every category on screen is labeled "estimate".
+as_of: "2026-10-23"
+# Rotating 5% categories are listed only for 2026-Q4. Maria's demo is set in June 2026 (Q2),
+# so no rotating bonus applies in the demo: we don't guess categories we couldn't verify.
+
+catalog:
+  costco_anywhere_visa:
+    name: "Costco Anywhere Visa Card by Citi"
+    annual_fee: 0            # requires a paid Costco membership
+    base_rate: 0.01
+    fixed: {costco: 0.02, dining: 0.03, travel: 0.03}
+    capped:
+      - {categories: [gas_costco], rate: 0.05}
+      - {categories: [gas, ev_charging], rate: 0.04}
+    shared_cap: {usd_per_year: 7000, applies_to: [gas_costco, gas, ev_charging], after_rate: 0.01}
+    source: "https://www.citi.com/credit-cards/understanding-credit-cards/costco-citi-card-gas-benefits"
+    verified: issuer_page
+
+  chase_freedom_flex:
+    name: "Chase Freedom Flex"
+    annual_fee: 0
+    base_rate: 0.01
+    fixed: {dining: 0.03, drugstore: 0.03}
+    rotating:
+      rate: 0.05
+      cap_usd_per_quarter: 1500
+      requires_activation: true
+      categories: {"2026-Q4": [grocery, dining]}   # grocery excludes Walmart/Target -> 'superstore'
+    note: "Some third parties say Q4 dining stacks to 7%. Not confirmed in Chase terms, so we use 5%."
+    source: "https://creditcards.chase.com/cash-back-credit-cards/freedom/flex"
+    verified: issuer_page
+
+  citi_double_cash:
+    name: "Citi Double Cash Card"
+    annual_fee: 0
+    base_rate: 0.02          # 1% when you buy + 1% when you pay
+    note: "The second 1% is earned only when the bill is paid."
+    source: "https://www.citi.com/credit-cards/citi-double-cash-credit-card"
+    verified: issuer_page
+
+  discover_it_cash:
+    name: "Discover it Cash Back"
+    annual_fee: 0
+    base_rate: 0.01
+    rotating:
+      rate: 0.05
+      cap_usd_per_quarter: 1500
+      requires_activation: true
+      categories: {"2026-Q4": [entertainment, dining, utilities]}
+    source: "https://www.nerdwallet.com/credit-cards/news/discover-bonus-categories-q4-2026"
+    verified: third_party     # issuer page not fetched
+
+  capone_quicksilver:
+    name: "Capital One Quicksilver"
+    annual_fee: 0
+    base_rate: 0.015
+    source: "https://www.capitalone.com/learn-grow/money-management/capital-one-quicksilver-vs-savor/"
+    verified: issuer_page
+
+  wf_active_cash:
+    name: "Wells Fargo Active Cash Card"
+    annual_fee: 0
+    base_rate: 0.02
+    source: "https://www.nerdwallet.com/credit-cards/reviews/wells-fargo-active-cash"
+    verified: third_party     # issuer page not fetched
+
+# Maria's wallet for the demo. Limits and balances here are the FALLBACK used when CRS is
+# unavailable. With CRS, limit/balance/open_date come from the sandbox tradeline at crs_tradeline.
+# On screen, say: "sandbox credit file mapped to demo card rules".
+user_cards:
+  - card_id: costco_anywhere_visa
+    crs_tradeline: 0
+    statement_close_day: 3
+    rotating_activated: false
+    fallback: {limit_usd: 500, balance_usd: 140, open_date: "2019-04-01"}
+    prior_spend: {gas_ytd_usd: 1200}
+  - card_id: chase_freedom_flex
+    crs_tradeline: 1
+    statement_close_day: 18
+    rotating_activated: true
+    fallback: {limit_usd: 1000, balance_usd: 220, open_date: "2022-08-01"}
+    prior_spend: {rotating_qtd_usd: 310}
+  - card_id: citi_double_cash
+    crs_tradeline: 2
+    statement_close_day: 12
+    rotating_activated: false
+    fallback: {limit_usd: 1500, balance_usd: 180, open_date: "2021-01-15"}
+
+settings:
+  utilization_ceiling: 0.30     # common guidance, not a hard rule
+  reporting_window_days: 7      # how close to statement close we treat a crossing as "will be reported"
+  crs_apply: full               # full: CRS limits/balances drive the Wallet. display_only: show CRS, keep cards.yaml numbers

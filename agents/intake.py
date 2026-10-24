@@ -102,7 +102,7 @@ class MileageDoc(BaseModel):
 
 class ReceiptDoc(BaseModel):
     vendor: Field
-    category: Field  # phone, supplies, other
+    category: Literal["phone", "supplies", "other"]  # your judgment, not a printed value
     date: Field  # bill or purchase date, or last day of billing period
     total_amount: Field
     business_share_percent: Field  # empty if not printed
@@ -283,6 +283,8 @@ def process(path: str | Path, client: anthropic.Anthropic | None = None, doc_id:
         result.income_entries, result.activity_entries, result.expenses = [], [], []
         return result
 
+    for row in (*result.income_entries, *result.activity_entries, *result.expenses):
+        row["sources"] = _printed_only(row["sources"])
     _check_confidence(parsed, result)
     found = list(parsed.embedded_instructions)
     if not found and INJECTION.search(raw_text):
@@ -339,7 +341,7 @@ def _to_rows(kind: str, p: BaseModel, r: IntakeResult) -> None:
         total = cents(p.total_amount)
         share = number(p.business_share_percent) / 100 if p.business_share_percent.value else None
         r.expenses.append({
-            "id": f"{did}-e1", "document_id": did, "category": p.category.value or "other",
+            "id": f"{did}-e1", "document_id": did, "category": p.category,
             "date": iso_date(p.date) if p.date.value else None,
             "bill_total_cents": total, "business_share": share,
             "amount_cents": round(total * share) if share is not None else total,
@@ -351,6 +353,19 @@ def _to_rows(kind: str, p: BaseModel, r: IntakeResult) -> None:
         r.document["deadline"] = iso_date(p.deadline) if p.deadline.value else None
         r.document["case_number"] = p.case_number.value
         r.document["request_summary"] = p.request_summary
+
+
+def _printed_only(sources: dict) -> dict:
+    """Drop sources for values that aren't printed, so their confidence can't hold anything up."""
+    out = {}
+    for k, v in sources.items():
+        if isinstance(v, list):
+            v = [x for x in v if x["shown"]]
+            if v:
+                out[k] = v
+        elif v["shown"]:
+            out[k] = v
+    return out
 
 
 def _fields(obj):
@@ -366,7 +381,7 @@ def _fields(obj):
 
 def _check_confidence(p: BaseModel, r: IntakeResult) -> None:
     for f in _fields(p):
-        if f.value and f.confidence < LOW_CONFIDENCE:
+        if f.value and f.shown and f.confidence < LOW_CONFIDENCE:  # only values printed on the page
             r.flags.append(_flag("low_confidence", f"Not sure this reads {f.shown!r}.",
                                  document_id=r.document["id"], field=source(f),
                                  question=f"Can you confirm this value reads {f.shown!r}?"))

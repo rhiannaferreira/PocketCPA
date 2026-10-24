@@ -1,0 +1,6 @@
+.env
+ledger.db*
+crs_cache.json
+.mypy_cache/
+.ruff_cache/
+__pycache__/

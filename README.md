@@ -73,7 +73,7 @@ Maria's cases are built from `demo/data` (SAMPLE data) through the adapters. The
 - Exemptions (such as caretakers and medically frail people), the six-month income average for seasonal workers, and lookbacks of more than one month are not modeled. `best_month` picks a single month.
 - Correcting a low-confidence value isn't supported yet. Answering "no" leaves the flag open.
 - The `effective` date (2027-01-01) is not enforced, so the demo's 2026 months are judged under the 2027 rules.
-- Intake's mileage logs come out in miles only, and no mileage rate is applied, so those rows are left out of expenses. The sample data's May mileage line already has a dollar amount ($58.00), so it is counted.
+- Intake's mileage logs come out in miles only. `demo/pipeline.py` applies `mileage_rate_cents_per_mile` from `rules.yaml` (IRS 2026, 72.5 cents) before the adapters, so May's 80 miles count as $58.00.
 
 Sources:
 - CMS, [Community engagement overview](https://www.medicaid.gov/medicaid/downloads/community-engagement-overview-slide.pdf) (Public Law 119-21, section 71119), and the [interim final rule, CMS-2454-IFC](https://www.federalregister.gov/documents/2026/06/03/2026-11094/medicaid-program-community-engagement-requirement-for-certain-individuals) (June 3, 2026)
@@ -81,12 +81,22 @@ Sources:
 
 ## Proof packet (`web/packet.py`)
 
-Renders the packet from MonthSummary rows and evidence entries only, so every number links to the image it came from. It shows the main and backup months, how each one meets the test, a table of evidence per month, the rules used with links, "the county decides" wording and a generation time.
+Renders the packet from the coverage engine's MonthSummary rows and the evidence rows behind them, so every number links to the image it came from. It shows every month on file, the main and backup months with the engine's reasons, a table of evidence per month, warnings with Maria's answers, the rules used with links, "the county decides" wording and a generation time.
 
 ```bash
-python3 -m web.packet --demo out/packet.html   # stand-in data from demo/data/answer_key.json
-python3 -m web.packet --demo out/packet.pdf    # needs: pip install playwright && playwright install chromium
-python3 -m web.packet --input packet.json out/packet.pdf
+python3 -m web.packet out/packet.html   # Maria's SAMPLE packet, offline
+python3 -m web.packet out/packet.pdf    # needs: pip install playwright && playwright install chromium
 ```
 
-`demo_packet()` builds stand-in input from the answer key. Once the coverage engine produces MonthSummary rows, pass those in with `--input` instead.
+## The whole story (`demo/pipeline.py`)
+
+Documents, then intake, the Auditor, month summaries and the packet, in one run.
+
+```bash
+python3 -m demo.pipeline                          # offline: intake rows simulated from the answer key
+python3 -m demo.pipeline --answer-yes out/p.html  # Maria answers every question, packet is built
+python3 -m demo.pipeline --live --answer-yes out/p.html   # reads the sample images with the model (API key)
+python3 -m demo.pipeline --cached --answer-yes out/p.html # reuses the last --live read, no API calls
+```
+
+Before Maria answers, March shows $612.00 and looks like it qualifies, with a blocking duplicate question. After she answers, March is $531.00 and below the floor, and the packet is built on May with April as the backup.
