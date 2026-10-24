@@ -88,7 +88,7 @@ def test_maria_may_qualifies_on_income_under_both_readings(maria_months):
 
 
 def test_maria_best_month_is_may(maria_months):
-    duplicate_week = open_flag("earn-2026-03-w2a-p1", "earn-2026-03-w2b-p1", "2026-03")
+    duplicate_week = open_flag("inc:earn-2026-03-w2a-p1", "inc:earn-2026-03-w2b-p1", "month:2026-03")
     choice = best_month(list(maria_months.values()), [duplicate_week])
     assert choice.month == "2026-05"
     assert choice.explanation.startswith("Build the packet on May 2026: it meets the requirement whether")
@@ -188,20 +188,24 @@ def test_best_month_breaks_ties_on_the_most_recent_month():
 
 def test_best_month_skips_a_month_named_by_an_open_flag():
     months = [replace(june(70000), month=m) for m in ("2026-05", "2026-06")]
-    choice = best_month(months, [open_flag("i1", "2026-06")])
+    choice = best_month(months, [open_flag("inc:i1", "month:2026-06")])
     assert choice.month == "2026-05"
     assert "Skipped June 2026: open questions touch it." in choice.explanation
     assert "1 open question must be answered before the packet can be built." in choice.explanation
 
 
+def test_untyped_ids_do_not_touch_a_month():
+    assert best_month([june(70000)], [open_flag("2026-06", "doc-i1")]).month == "2026-06"
+
+
 def test_best_month_skips_a_month_whose_document_is_flagged():
     may = replace(june(70000), month="2026-05", source_ids=["doc-may"])
     jun = replace(june(70000), month="2026-06", source_ids=["doc-june"])
-    assert best_month([may, jun], [open_flag("doc-june")]).month == "2026-05"
+    assert best_month([may, jun], [open_flag("doc:doc-june")]).month == "2026-05"
 
 
 def test_resolved_flags_do_not_block_a_month():
-    resolved = replace(open_flag("2026-06"), status="resolved")
+    resolved = replace(open_flag("month:2026-06"), status="resolved")
     assert best_month([june(70000)], [resolved]).month == "2026-06"
 
 
@@ -213,5 +217,5 @@ def test_best_month_returns_none_when_nothing_qualifies():
 
 
 def test_best_month_returns_none_when_every_qualifying_month_is_flagged():
-    choice = best_month([june(70000)], [open_flag("2026-06")])
+    choice = best_month([june(70000)], [open_flag("month:2026-06")])
     assert choice.month is None and "June 2026 would qualify, but open questions touch it" in choice.explanation

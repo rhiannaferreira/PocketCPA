@@ -3,10 +3,13 @@
 Pure functions over ledger rows: no network, no model calls. A check never changes a value; it
 only asks. Every open flag blocks the packet; severity only orders them on the board.
 
-A flag's entity_ids list the rows it is about, then the month(s) (YYYY-MM) whose result it could
-change, so best_month can skip those months. For a duplicate, entity_ids[0] is the original we
-keep and entity_ids[1] the suspected copy (an income entry, or a whole document for a repeated
-image). Flag ids are built from the rows, so re-running the checks gives the same ids.
+A flag's entity_ids are typed so ids from different tables can't collide: first the rows it is
+about (doc:, inc:, act:, exp:, dep:), then the months whose result it could change
+(month:YYYY-MM), so best_month can skip them. For a duplicate, entity_ids[0] is the original we
+keep and entity_ids[1] the suspected copy (inc: for a payout, doc: for a repeated image). Flag
+ids are built from the rows, so re-running the checks gives the same ids.
+
+Rows and flags can be the dataclasses in core/schemas.py or pydantic models with the same fields.
 
 Documents are data, never instructions: hidden_instruction reports instruction-like text, and
 nothing here acts on what a document says.
@@ -16,13 +19,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, replace
 from datetime import timedelta
-from typing import Iterable, Mapping, Sequence, Union
+from typing import Iterable, Mapping, Sequence, TypeVar, Union
 
-from core.corridor import (MONTH_ID, Rules, as_date, dollars, hours_text, income_month, month_label,
-                           month_of, summarize_month)
+from core.corridor import (Rules, as_date, dollars, hours_text, income_month, month_label, month_of, ref,
+                           summarize_month, unref)
 from core.schemas import ActivityEntry, Deposit, Document, Expense, Flag, IncomeEntry, MonthSummary
 
 Row = Union[IncomeEntry, ActivityEntry, Expense]
+T = TypeVar("T")
 
 INSTRUCTION_PATTERNS = tuple(re.compile(p, re.I) for p in (
     r"\bignore (all |any )?(the )?(previous|prior|above|earlier)\b",
@@ -44,11 +48,23 @@ YES, NO = {"yes", "y", "true"}, {"no", "n", "false"}
 def _flag(kind: str, severity: str, key_ids: Sequence[str], months: Iterable[str], message: str,
           question: str) -> Flag:
     return Flag(id=f"{kind}:{':'.join(key_ids)}", kind=kind, severity=severity, message=message,
-                entity_ids=[*key_ids, *sorted(set(months))], status="open", question_for_user=question)
+                entity_ids=[*key_ids, *(ref("month", m) for m in sorted(set(months)))], status="open",
+                question_for_user=question)
+
+
+def updated(obj: T, **changes) -> T:
+    """A copy with some fields changed, for pydantic models and dataclasses alike."""
+    return obj.model_copy(update=changes) if hasattr(obj, "model_copy") else replace(obj, **changes)
 
 
 def row_month(row: Row) -> str:
     return row.month if hasattr(row, "month") else income_month(row)
+
+
+def row_ref(row: Row) -> str:
+    if hasattr(row, "gross_cents"):
+        return ref("inc", row.id)
+    return ref("act" if hasattr(row, "hours") else "exp", row.id)
 
 
 def day_label(day) -> str:
@@ -75,7 +91,8 @@ def duplicates(documents: Sequence[Document], income: Sequence[IncomeEntry],
     for original, copy in _same_image_pairs(documents):
         copied_docs.add(frozenset((original.id, copy.id)))
         flags.append(_flag(
-            "duplicate", "block", [original.id, copy.id], {row_month(r) for r in rows if r.document_id == copy.id},
+            "duplicate", "block", [ref("doc", original.id), ref("doc", copy.id)],
+            {row_month(r) for r in rows if r.document_id == copy.id},
             f"{copy.id} is the same image as {original.id}.",
             "These two uploads are the same picture; did you upload it twice by mistake?"))
 
@@ -86,7 +103,7 @@ def duplicates(documents: Sequence[Document], income: Sequence[IncomeEntry],
         if original is None or frozenset((original.document_id, copy.document_id)) in copied_docs:
             continue
         flags.append(_flag(
-            "duplicate", "block", [original.id, copy.id], [income_month(copy)],
+            "duplicate", "block", [row_ref(original), row_ref(copy)], [income_month(copy)],
             f"{copy.id} repeats {original.id}: same platform, overlapping dates, same amount.",
             f"Is the {_payout_label(copy)} the same payout uploaded twice?"))
     return flags
@@ -111,7 +128,7 @@ def _same_payout(a: IncomeEntry, b: IncomeEntry) -> bool:
 def payout_without_deposit(income: Sequence[IncomeEntry], deposits: Sequence[Deposit], rules: Rules) -> list[Flag]:
     """A payout with no deposit from the same platform, same amount (±tolerance), 0-N days after the period."""
     return [_flag(
-        "payout_without_deposit", "warn", [e.id], [income_month(e)],
+        "payout_without_deposit", "warn", [row_ref(e)], [income_month(e)],
         f"No {e.platform} deposit of about {dollars(e.gross_cents)} arrived within "
         f"{rules.deposit_window_days} days after {day_label(e.period_end)}.",
         f"We couldn't find a bank deposit for your {_payout_label(e)}; was it paid somewhere else, "
@@ -128,7 +145,7 @@ def deposit_without_payout(income: Sequence[IncomeEntry], deposits: Sequence[Dep
         day = as_date(d.date)
         months = {month_of(day), month_of(day - timedelta(days=rules.deposit_window_days))}
         flags.append(_flag(
-            "deposit_without_payout", "warn", [d.id], months,
+            "deposit_without_payout", "warn", [ref("dep", d.id)], months,
             f"The {dollars(d.amount_cents)} deposit on {day_label(day)} ({d.description}) matches no payout on file.",
             f"Is the {dollars(d.amount_cents)} deposit on {day_label(day)} ({d.description}) something other "
             "than pay for work, like a gift or a refund?"))
@@ -153,7 +170,7 @@ def low_confidence(income: Sequence[IncomeEntry], activities: Sequence[ActivityE
                    expenses: Sequence[Expense], rules: Rules) -> list[Flag]:
     threshold = rules.low_confidence_threshold
     return [_flag(
-        "low_confidence", "warn", [r.id], [row_month(r)],
+        "low_confidence", "warn", [row_ref(r)], [row_month(r)],
         f"{r.id} was read with {r.confidence:.0%} confidence, below the {threshold:.0%} threshold.",
         f"We read {_describe(r)} but aren't sure; is that right?")
         for r in (*income, *activities, *expenses) if r.confidence < threshold]
@@ -176,7 +193,7 @@ def hidden_instruction(document_id: str, raw_text: str, months: Iterable[str] = 
         return []
     quoted = "; ".join(f'"{x[:60]}"' for x in found[:3])
     return [_flag(
-        "hidden_instruction", "block", [document_id], months,
+        "hidden_instruction", "block", [ref("doc", document_id)], months,
         f"{document_id} contains text that tries to instruct the app ({quoted}); it was ignored and changed nothing.",
         "This document contains text that tries to give the app instructions, which we ignored; "
         "is it a real document you received?")]
@@ -199,7 +216,7 @@ def run_all_checks(documents: Sequence[Document], income: Sequence[IncomeEntry],
     for doc_id, text in raw_texts.items():
         flags += hidden_instruction(doc_id, text, {row_month(r) for r in rows if r.document_id == doc_id})
     done = set(resolved_ids)
-    return [replace(f, status="resolved") if f.id in done else f for f in flags]
+    return [updated(f, status="resolved") if f.id in done else f for f in flags]
 
 
 # ---------- Maria answers
@@ -228,8 +245,8 @@ def resolve(flag: Flag, answer: str | bool, income: Sequence[IncomeEntry], activ
     if flag.kind == "duplicate" and yes:
         income, activities, expenses = drop_copy(flag.entity_ids[1], income, activities, expenses)
     status = "resolved" if yes or flag.kind == "duplicate" else "open"
-    months = [m for m in flag.entity_ids if MONTH_ID.fullmatch(m)]
-    return Resolution(replace(flag, status=status), list(income), list(activities), list(expenses),
+    months = [id for kind, id in map(unref, flag.entity_ids) if kind == "month"]
+    return Resolution(updated(flag, status=status), list(income), list(activities), list(expenses),
                       [summarize_month(m, income, activities, expenses, rules) for m in months])
 
 
@@ -242,14 +259,19 @@ def parse_answer(answer: str | bool) -> bool:
     raise ValueError(f"answer must be yes or no, got {answer!r}")
 
 
-def drop_copy(copy_id: str, income: Sequence[IncomeEntry], activities: Sequence[ActivityEntry],
+def drop_copy(copy_ref: str, income: Sequence[IncomeEntry], activities: Sequence[ActivityEntry],
               expenses: Sequence[Expense]) -> tuple[list[IncomeEntry], list[ActivityEntry], list[Expense]]:
-    """Remove a confirmed copy: one income entry, or every row of a repeated document.
+    """Remove a confirmed copy: one payout (inc:) or every row of a repeated document (doc:).
 
     A document left with no income was only the copy, so its work hours go too.
     """
-    kept = [e for e in income if copy_id not in (e.id, e.document_id)]
-    gone = {copy_id} | ({e.document_id for e in income} - {e.document_id for e in kept})
+    kind, copy_id = unref(copy_ref)
+    if kind not in ("doc", "inc"):
+        raise ValueError(f"cannot drop {copy_ref!r}: expected a doc: or inc: id")
+    kept = [e for e in income if (e.document_id if kind == "doc" else e.id) != copy_id]
+    gone = {e.document_id for e in income} - {e.document_id for e in kept}
+    if kind == "doc":
+        gone.add(copy_id)
     return (kept,
-            [a for a in activities if a.id != copy_id and a.document_id not in gone],
-            [x for x in expenses if x.id != copy_id and x.document_id not in gone])
+            [a for a in activities if a.document_id not in gone],
+            [x for x in expenses if x.document_id not in gone])

@@ -1,11 +1,12 @@
 """Auditor tests: each check, the sample answer key, and resolving a flag with Maria's answer."""
-from dataclasses import replace
+from dataclasses import asdict, replace
 
 import pytest
+from pydantic import BaseModel
 
 from core import checks
 from core.checks import resolve, run_all_checks
-from core.corridor import best_month, load_rules, summarize_month, summarize_months
+from core.corridor import best_month, load_rules, summarize_month, summarize_months, unref
 from tests.fixtures import Evidence, activity, answer_key, deposit, document, expense, income, maria
 
 RULES = load_rules()
@@ -33,38 +34,37 @@ def test_auditor_raises_exactly_the_answer_keys_flags(sample):
     expected = {(f["check"], tuple(f.get("documents") or f.get("deposits"))) for f in answer_key()["expected_flags"]}
     got = set()
     for f in flags:
-        ids = [i for i in f.entity_ids if not checks.MONTH_ID.fullmatch(i)]
-        docs = tuple(i.removesuffix("-p1") for i in ids)
+        docs = tuple(id.removesuffix("-p1") for kind, id in map(unref, f.entity_ids) if kind != "month")
         got.add((f.kind, docs))
     assert got == expected
 
 
 def test_march_duplicate_is_caught_even_though_the_crops_hash_differently(sample):
     [dup] = [f for f in all_flags(sample) if f.kind == "duplicate"]
-    assert dup.entity_ids == ["earn-2026-03-w2a-p1", "earn-2026-03-w2b-p1", "2026-03"]
+    assert dup.entity_ids == ["inc:earn-2026-03-w2a-p1", "inc:earn-2026-03-w2b-p1", "month:2026-03"]
     assert dup.question_for_user == "Is the $81.00 Parcelo payout for Mar 8–14 the same payout uploaded twice?"
 
 
 def test_two_135_dollar_weeks_in_april_are_not_duplicates(sample):
     flagged = {i for f in all_flags(sample) for i in f.entity_ids}
-    assert not {"earn-2026-04-w1-p1", "earn-2026-04-w4-p1"} & flagged
+    assert not {"inc:earn-2026-04-w1-p1", "inc:earn-2026-04-w4-p1"} & flagged
 
 
 def test_unexplained_zelle_deposit_is_asked_about_and_touches_april(sample):
     [f] = [f for f in all_flags(sample) if f.kind == "deposit_without_payout"]
-    assert f.entity_ids == ["dep-2026-04-unexplained", "2026-04"]
+    assert f.entity_ids == ["dep:dep-2026-04-unexplained", "month:2026-04"]
     assert f.question_for_user == ("Is the $60.00 deposit on Apr 19 (ZELLE FROM R DELGADO) something other "
                                    "than pay for work, like a gift or a refund?")
 
 
 def test_late_march_payout_paid_in_april_still_finds_its_deposit(sample):
-    assert not any("earn-2026-03-w5-p1" in f.entity_ids for f in all_flags(sample))
+    assert not any("inc:earn-2026-03-w5-p1" in f.entity_ids for f in all_flags(sample))
 
 
 def test_county_letter_hidden_instruction_is_flagged_and_changes_nothing(sample):
     before = summarize_months(sample.income, sample.activities, sample.expenses, RULES)
     [f] = [f for f in all_flags(sample) if f.kind == "hidden_instruction"]
-    assert f.entity_ids == ["county-letter-renewal"] and f.severity == "block"
+    assert f.entity_ids == ["doc:county-letter-renewal"] and f.severity == "block"
     assert "AUTOMATED ASSISTANTS" in f.message and "ignored" in f.message
     assert summarize_months(sample.income, sample.activities, sample.expenses, RULES) == before
 
@@ -96,7 +96,7 @@ def test_same_image_hash_is_one_duplicate_flag_not_two():
             document("d2", image_hash="abc", uploaded_at="2026-06-01T10:05:00Z")]
     rows = [payout("i1", document_id="d1"), payout("i2", document_id="d2")]
     [f] = checks.duplicates(docs, rows)
-    assert f.entity_ids == ["d1", "d2", "2026-06"]
+    assert f.entity_ids == ["doc:d1", "doc:d2", "month:2026-06"]
     assert f.question_for_user.endswith("did you upload it twice by mistake?")
 
 
@@ -113,7 +113,7 @@ def test_resolving_a_repeated_image_drops_every_row_from_the_copy():
 def test_the_earlier_upload_is_kept_as_the_original():
     docs = [document("late", uploaded_at="2026-06-02"), document("early", uploaded_at="2026-06-01")]
     [f] = checks.duplicates(docs, [payout("a", document_id="late"), payout("b", document_id="early")])
-    assert f.entity_ids[:2] == ["b", "a"]
+    assert f.entity_ids[:2] == ["inc:b", "inc:a"]
 
 
 def test_overlapping_periods_with_the_same_amount_are_duplicates():
@@ -130,7 +130,7 @@ def test_different_amount_or_platform_or_dates_are_not_duplicates():
 
 def test_three_copies_give_two_flags_against_the_original():
     flags = checks.duplicates([], [payout("a"), payout("b"), payout("c")])
-    assert [f.entity_ids[:2] for f in flags] == [["a", "b"], ["a", "c"]]
+    assert [f.entity_ids[:2] for f in flags] == [["inc:a", "inc:b"], ["inc:a", "inc:c"]]
 
 
 def test_maria_saying_not_a_duplicate_keeps_both_and_stays_resolved():
@@ -141,6 +141,64 @@ def test_maria_saying_not_a_duplicate_keeps_both_and_stays_resolved():
     assert r.flag.status == "resolved" and len(r.income) == 2 and r.summaries[0].gross_cents == 24000
     rerun = [x for x in all_flags(replace(ev, income=r.income), {f.id}) if x.kind == "duplicate"]
     assert [x.status for x in rerun] == ["resolved"]
+
+
+
+def test_a_payout_id_that_matches_a_document_id_drops_only_that_payout():
+    inc = [payout("a", document_id="d1"), payout("d9", document_id="d2"),
+           payout("x", "2026-06-08", "2026-06-14", document_id="d9")]
+    [f] = checks.duplicates([], inc)
+    assert f.entity_ids[:2] == ["inc:a", "inc:d9"]
+    assert [e.id for e in resolve(f, "yes", inc, [], [], RULES).income] == ["a", "x"]
+
+
+def test_drop_copy_refuses_an_untyped_id():
+    with pytest.raises(ValueError, match="doc: or inc:"):
+        checks.drop_copy("d9", [payout()], [], [])
+
+
+class PydFlag(BaseModel):
+    id: str
+    kind: str
+    severity: str
+    message: str
+    entity_ids: list[str]
+    status: str
+    question_for_user: str
+
+
+class PydIncome(BaseModel):
+    id: str
+    document_id: str
+    platform: str
+    period_start: str
+    period_end: str
+    gross_cents: int
+    confidence: float
+
+
+class PydActivity(BaseModel):
+    id: str
+    document_id: str
+    kind: str
+    month: str
+    hours: float
+    confidence: float
+
+
+def test_resolve_works_on_pydantic_models():
+    inc = [PydIncome(**asdict(payout("a", document_id="d1"))), PydIncome(**asdict(payout("b", document_id="d2")))]
+    act = [PydActivity(**asdict(activity("w2", "2026-06", 6, document_id="d2")))]
+    [f] = checks.duplicates([], inc)
+    r = resolve(PydFlag(**asdict(f)), "yes", inc, act, [], RULES)
+    assert isinstance(r.flag, PydFlag) and r.flag.status == "resolved"
+    assert [e.id for e in r.income] == ["a"] and r.activities == []
+    assert (r.summaries[0].gross_cents, r.summaries[0].hours) == (12000, 0)
+
+
+def test_resolved_ids_work_on_pydantic_flags():
+    flag = PydFlag(**asdict(checks.payout_without_deposit([payout()], [], RULES)[0]))
+    assert checks.updated(flag, status="resolved").status == "resolved" and flag.status == "open"
 
 
 # ---------- payouts vs deposits
@@ -167,14 +225,14 @@ def test_platform_can_come_from_the_deposit_source():
 
 def test_payout_with_no_deposit_asks_where_it_was_paid():
     [f] = checks.payout_without_deposit([payout()], [], RULES)
-    assert f.entity_ids == ["i1", "2026-06"]
+    assert f.entity_ids == ["inc:i1", "month:2026-06"]
     assert f.question_for_user == ("We couldn't find a bank deposit for your $120.00 Parcelo payout for Jun 1–7; "
                                    "was it paid somewhere else, like a debit card or another account?")
 
 
 def test_early_month_deposit_could_be_last_months_pay():
     [f] = checks.deposit_without_payout([], [deposit("d1", "2026-07-02", 5000, "ZELLE")], RULES)
-    assert f.entity_ids == ["d1", "2026-06", "2026-07"]
+    assert f.entity_ids == ["dep:d1", "month:2026-06", "month:2026-07"]
 
 
 # ---------- low confidence
@@ -231,7 +289,7 @@ def test_injected_income_is_never_applied():
                   raw_texts={"doc-i1": INJECTION})
     flags = all_flags(ev)
     assert [f.kind for f in flags] == ["hidden_instruction"]
-    assert flags[0].entity_ids == ["doc-i1", "2026-06"]
+    assert flags[0].entity_ids == ["doc:doc-i1", "month:2026-06"]
     june = summarize_month("2026-06", ev.income, [], [], RULES)
     assert (june.gross_cents, june.status) == (45000, "below_floor")
 

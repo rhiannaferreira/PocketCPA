@@ -7,7 +7,6 @@ answer depends on that choice. The county decides; this only reports what the ev
 """
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -20,7 +19,6 @@ from core.schemas import ActivityEntry, Expense, Flag, IncomeEntry, MonthSummary
 RULES_PATH = Path(__file__).with_name("rules.yaml")
 ACTIVITY_KINDS = ("work", "school", "volunteer")
 QUALIFYING = ("qualifies", "qualifies_depends_on_basis")  # in order of preference
-MONTH_ID = re.compile(r"\d{4}-\d{2}")
 
 Status = Literal["qualifies", "qualifies_depends_on_basis", "below_floor", "above_ceiling"]
 
@@ -91,6 +89,16 @@ def month_label(month: str) -> str:
 
 def join_words(items: Sequence[str]) -> str:
     return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
+
+
+def ref(kind: str, id: str) -> str:
+    """A typed id for Flag.entity_ids (doc:, inc:, act:, exp:, dep: or month:), so ids can't collide."""
+    return f"{kind}:{id}"
+
+
+def unref(entity_id: str) -> tuple[str, str]:
+    kind, _, id = entity_id.partition(":")
+    return kind, id
 
 
 def _cents_total(amounts: Iterable[int]) -> int:
@@ -223,7 +231,7 @@ class MonthChoice:
 def flag_touches(flag: Flag, summary: MonthSummary) -> bool:
     """A flag touches a month when it names the month or a document behind the month's numbers."""
     ids = set(flag.entity_ids)
-    return summary.month in ids or not ids.isdisjoint(summary.source_ids)
+    return ref("month", summary.month) in ids or any(ref("doc", d) in ids for d in summary.source_ids)
 
 
 def best_month(summaries: Sequence[MonthSummary], open_flags: Sequence[Flag]) -> MonthChoice:
