@@ -53,7 +53,7 @@ def deposit(id: str, date: str, amount_cents: int, description: str = "PARCELO D
 
 def document(id: str, kind: str = "earnings", platform: Optional[str] = "Parcelo", *,
              image_hash: Optional[str] = None, uploaded_at: str = "2026-06-03T18:00:00+00:00") -> Document:
-    return Document(id, kind, platform, image_hash or f"hash-{id}", uploaded_at)
+    return Document(id, kind, platform, image_hash or f"hash-{id}", str(uploaded_at))
 
 
 # ---------- Maria (SAMPLE)

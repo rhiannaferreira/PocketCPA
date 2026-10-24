@@ -160,6 +160,7 @@ def _status(gross_ok: bool, net_ok: bool, under_ceiling_gross: bool) -> Status:
         return "qualifies"
     if gross_ok or net_ok:
         return "qualifies_depends_on_basis"
+    # Neither reading works. Gross over the ceiling is reported first; the reasons give both readings.
     return "below_floor" if under_ceiling_gross else "above_ceiling"
 
 
