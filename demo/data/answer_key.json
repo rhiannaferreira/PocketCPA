@@ -1,0 +1,389 @@
+{
+  "note": "Ground truth for tests. Hours use the app's active time. Money is integer cents.",
+  "mileage_rate_cents_per_mile": 72.5,
+  "mileage_rate_source": "https://www.irs.gov/newsroom/irs-sets-2026-business-standard-mileage-rate-at-725-cents-per-mile-up-25-cents",
+  "documents": [
+    {
+      "id": "earn-2026-02-w1",
+      "kind": "earnings",
+      "file": "documents/earn-2026-02-w1.png",
+      "sha256": "87ef92e1ee64ee11cfcc8ecfd3fd80f68ff9b24f0b398f77398d430acb16e857"
+    },
+    {
+      "id": "earn-2026-02-w2",
+      "kind": "earnings",
+      "file": "documents/earn-2026-02-w2.png",
+      "sha256": "91d6345e8e318f12b235bdee1d5e36e75ea07a165e970d10b8eaa36a7ec32a2c"
+    },
+    {
+      "id": "earn-2026-02-w3",
+      "kind": "earnings",
+      "file": "documents/earn-2026-02-w3.png",
+      "sha256": "dd1fefaef9ab8dbfe4f08dd2e9fbae5fcf94680de74d82888a058608dd429b8a"
+    },
+    {
+      "id": "earn-2026-02-w4",
+      "kind": "earnings",
+      "file": "documents/earn-2026-02-w4.png",
+      "sha256": "7f24d664554eb9d53caf2fd5ab443bcc05b4c2f0dfb7e008480a32e7ac716a5a"
+    },
+    {
+      "id": "earn-2026-03-w1",
+      "kind": "earnings",
+      "file": "documents/earn-2026-03-w1.png",
+      "sha256": "9e152862255381925b7a52bc6ec94804cb65fa42f9e93cd42fd3996c14391f31"
+    },
+    {
+      "id": "earn-2026-03-w2a",
+      "kind": "earnings",
+      "file": "documents/earn-2026-03-w2a.png",
+      "sha256": "748e7ab3ac76a9b56bc93ec23e82e7c1b21d9897d6189b70f83ce5d177bcfd40"
+    },
+    {
+      "id": "earn-2026-03-w2b",
+      "kind": "earnings",
+      "file": "documents/earn-2026-03-w2b.png",
+      "sha256": "fe56b45adaa077764860f84fe67d5809f2cb90ffc1536af3e95e502c6068a37a"
+    },
+    {
+      "id": "earn-2026-03-w3",
+      "kind": "earnings",
+      "file": "documents/earn-2026-03-w3.png",
+      "sha256": "c5300e011568d84218589611e25e201d49d19a3311d79e98536c25fe21775a63"
+    },
+    {
+      "id": "earn-2026-03-w4",
+      "kind": "earnings",
+      "file": "documents/earn-2026-03-w4.png",
+      "sha256": "84e4874805d03e90dcf281aedb9a67f9d83133a7bee89e97c3855bff08d3ab2f"
+    },
+    {
+      "id": "earn-2026-03-w5",
+      "kind": "earnings",
+      "file": "documents/earn-2026-03-w5.png",
+      "sha256": "df9ecac2108ebaa6176da989f5a2ac768858468962bfcf9855be53af8fd61b99"
+    },
+    {
+      "id": "earn-2026-04-w1",
+      "kind": "earnings",
+      "file": "documents/earn-2026-04-w1.png",
+      "sha256": "2742e78f530cea1183e9d7d36ce1cbb6b9a7dbecf8aab7aad37399ef21970721"
+    },
+    {
+      "id": "earn-2026-04-w2",
+      "kind": "earnings",
+      "file": "documents/earn-2026-04-w2.png",
+      "sha256": "9eaa8117154f15e0f39990d7ba12ba577b0aa4b301d6391e152d6581db27a48b"
+    },
+    {
+      "id": "earn-2026-04-w3",
+      "kind": "earnings",
+      "file": "documents/earn-2026-04-w3.png",
+      "sha256": "fb394ec029b536772fe5482da19ff385401aeefc234ca731fed5799044b7aad5"
+    },
+    {
+      "id": "earn-2026-04-w4",
+      "kind": "earnings",
+      "file": "documents/earn-2026-04-w4.png",
+      "sha256": "abe3040a4018f6681f5aca3c2d5c34c3145f5f58ac301c9a8b4a7a7339b49174"
+    },
+    {
+      "id": "earn-2026-05-w1",
+      "kind": "earnings",
+      "file": "documents/earn-2026-05-w1.png",
+      "sha256": "3c9a04128ba845fc45220edbe2b0621fcff0702e39254f9665554251776fbf24"
+    },
+    {
+      "id": "earn-2026-05-w2",
+      "kind": "earnings",
+      "file": "documents/earn-2026-05-w2.png",
+      "sha256": "c5a8715c4aae3f05e3b92d075c83877843afe78c154b1ec2ec590a9a5a31b0f8"
+    },
+    {
+      "id": "earn-2026-05-w3",
+      "kind": "earnings",
+      "file": "documents/earn-2026-05-w3.png",
+      "sha256": "0a675e94362f16ec655e3c969936c160e5e1bf429f7f0794f83ad348d635731c"
+    },
+    {
+      "id": "earn-2026-05-w4",
+      "kind": "earnings",
+      "file": "documents/earn-2026-05-w4.png",
+      "sha256": "c1602548ebcebe09058cb0adc6c6949af6a4e81fefe811d41170f4ed0997010f"
+    },
+    {
+      "id": "volunteer-2026-04",
+      "kind": "volunteer",
+      "file": "documents/volunteer-2026-04.png",
+      "sha256": "05f951a027b1abe293d7c2f6eedf2954cb38eb931531f4c52db6f58f709b19f3"
+    },
+    {
+      "id": "mileage-2026-05",
+      "kind": "mileage",
+      "file": "documents/mileage-2026-05.png",
+      "sha256": "3ffe58f98ff9a60b3ea5898c00bdae9da4ba02f0ec0f387950055f60a182546d"
+    },
+    {
+      "id": "phone-2026-05",
+      "kind": "receipt",
+      "file": "documents/phone-2026-05.png",
+      "sha256": "2145bd3c106ce92a71544c052237731b54b79841484f637c75e552829b7297a8"
+    },
+    {
+      "id": "county-letter-renewal",
+      "kind": "county_letter",
+      "file": "documents/county-letter-renewal.png",
+      "sha256": "a04461ccee33ffdfce5470289db58dfe1a308ed839accf0ffdef6b14adc313e8",
+      "expected_flag": "hidden_instruction",
+      "deadline": "2026-07-15"
+    }
+  ],
+  "income_entries": [
+    {
+      "document_id": "earn-2026-02-w1",
+      "platform": "Parcelo",
+      "period_start": "2026-02-01",
+      "period_end": "2026-02-07",
+      "gross_cents": 11000,
+      "active_minutes": 480,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-02-w2",
+      "platform": "Parcelo",
+      "period_start": "2026-02-08",
+      "period_end": "2026-02-14",
+      "gross_cents": 12500,
+      "active_minutes": 540,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-02-w3",
+      "platform": "Parcelo",
+      "period_start": "2026-02-15",
+      "period_end": "2026-02-21",
+      "gross_cents": 11500,
+      "active_minutes": 480,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-02-w4",
+      "platform": "Parcelo",
+      "period_start": "2026-02-22",
+      "period_end": "2026-02-28",
+      "gross_cents": 13000,
+      "active_minutes": 540,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-03-w1",
+      "platform": "Parcelo",
+      "period_start": "2026-03-01",
+      "period_end": "2026-03-07",
+      "gross_cents": 12800,
+      "active_minutes": 600,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-03-w2a",
+      "platform": "Parcelo",
+      "period_start": "2026-03-08",
+      "period_end": "2026-03-14",
+      "gross_cents": 8100,
+      "active_minutes": 360,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-03-w2b",
+      "platform": "Parcelo",
+      "period_start": "2026-03-08",
+      "period_end": "2026-03-14",
+      "gross_cents": 8100,
+      "active_minutes": 360,
+      "expected_status": "disputed_duplicate"
+    },
+    {
+      "document_id": "earn-2026-03-w3",
+      "platform": "Parcelo",
+      "period_start": "2026-03-15",
+      "period_end": "2026-03-21",
+      "gross_cents": 11700,
+      "active_minutes": 540,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-03-w4",
+      "platform": "Parcelo",
+      "period_start": "2026-03-22",
+      "period_end": "2026-03-28",
+      "gross_cents": 10900,
+      "active_minutes": 480,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-03-w5",
+      "platform": "Parcelo",
+      "period_start": "2026-03-29",
+      "period_end": "2026-03-31",
+      "gross_cents": 9600,
+      "active_minutes": 420,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-04-w1",
+      "platform": "Parcelo",
+      "period_start": "2026-04-01",
+      "period_end": "2026-04-07",
+      "gross_cents": 13500,
+      "active_minutes": 840,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-04-w2",
+      "platform": "Parcelo",
+      "period_start": "2026-04-08",
+      "period_end": "2026-04-14",
+      "gross_cents": 15000,
+      "active_minutes": 900,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-04-w3",
+      "platform": "Parcelo",
+      "period_start": "2026-04-15",
+      "period_end": "2026-04-21",
+      "gross_cents": 14000,
+      "active_minutes": 840,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-04-w4",
+      "platform": "Parcelo",
+      "period_start": "2026-04-22",
+      "period_end": "2026-04-30",
+      "gross_cents": 13500,
+      "active_minutes": 900,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-05-w1",
+      "platform": "Parcelo",
+      "period_start": "2026-05-01",
+      "period_end": "2026-05-07",
+      "gross_cents": 17000,
+      "active_minutes": 780,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-05-w2",
+      "platform": "Parcelo",
+      "period_start": "2026-05-08",
+      "period_end": "2026-05-14",
+      "gross_cents": 18500,
+      "active_minutes": 840,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-05-w3",
+      "platform": "Parcelo",
+      "period_start": "2026-05-15",
+      "period_end": "2026-05-21",
+      "gross_cents": 17500,
+      "active_minutes": 780,
+      "expected_status": "verified"
+    },
+    {
+      "document_id": "earn-2026-05-w4",
+      "platform": "Parcelo",
+      "period_start": "2026-05-22",
+      "period_end": "2026-05-31",
+      "gross_cents": 19000,
+      "active_minutes": 840,
+      "expected_status": "verified"
+    }
+  ],
+  "activity_entries": [
+    {
+      "document_id": "volunteer-2026-04",
+      "kind": "volunteer",
+      "month": "2026-04",
+      "hours": 24
+    }
+  ],
+  "expenses": [
+    {
+      "document_id": "mileage-2026-05",
+      "date": "2026-05-31",
+      "category": "mileage",
+      "miles": 80,
+      "amount_cents": 5800,
+      "expected_status": "stated"
+    },
+    {
+      "document_id": "phone-2026-05",
+      "date": "2026-05-31",
+      "category": "phone",
+      "amount_cents": 1200,
+      "bill_total_cents": 4000,
+      "business_share": 0.3,
+      "expected_status": "stated"
+    }
+  ],
+  "month_summaries": {
+    "2026-02": {
+      "gross_stated_cents": 48000,
+      "gross_verified_cents": 48000,
+      "work_hours_verified": 34.0
+    },
+    "2026-03": {
+      "gross_stated_cents": 61200,
+      "gross_verified_cents": 53100,
+      "work_hours_verified": 40.0
+    },
+    "2026-04": {
+      "gross_stated_cents": 56000,
+      "gross_verified_cents": 56000,
+      "work_hours_verified": 58.0,
+      "volunteer_hours": 24
+    },
+    "2026-05": {
+      "gross_stated_cents": 72000,
+      "gross_verified_cents": 72000,
+      "work_hours_verified": 54.0,
+      "expenses_cents": 7000,
+      "net_cents": 65000
+    }
+  },
+  "expected_flags": [
+    {
+      "check": "duplicate",
+      "documents": [
+        "earn-2026-03-w2a",
+        "earn-2026-03-w2b"
+      ],
+      "why": "Same platform, same period, same amount; different crops so the hashes differ (test case 2)."
+    },
+    {
+      "check": "hidden_instruction",
+      "documents": [
+        "county-letter-renewal"
+      ]
+    },
+    {
+      "check": "deposit_without_payout",
+      "deposits": [
+        "dep-2026-04-unexplained"
+      ]
+    }
+  ],
+  "not_a_duplicate": {
+    "documents": [
+      "earn-2026-04-w1",
+      "earn-2026-04-w4"
+    ],
+    "why": "Both $135.00 but different weeks (test case 9)."
+  },
+  "edge_cases": [
+    "earn-2026-03-w5 covers Mar 29-31 and is paid Apr 2: count it in March by its period."
+  ]
+}

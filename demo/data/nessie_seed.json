@@ -1,0 +1,217 @@
+{
+  "customer": {
+    "first_name": "Maria",
+    "last_name": "Delgado",
+    "sample": true
+  },
+  "account": {
+    "type": "Checking",
+    "nickname": "Checking \u2022\u20224821"
+  },
+  "deposits": [
+    {
+      "id": "dep-2026-02-w1",
+      "date": "2026-02-09",
+      "amount_cents": 11000,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-02-01",
+        "2026-02-07"
+      ]
+    },
+    {
+      "id": "dep-2026-02-w2",
+      "date": "2026-02-16",
+      "amount_cents": 12500,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-02-08",
+        "2026-02-14"
+      ]
+    },
+    {
+      "id": "dep-2026-02-w3",
+      "date": "2026-02-23",
+      "amount_cents": 11500,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-02-15",
+        "2026-02-21"
+      ]
+    },
+    {
+      "id": "dep-2026-02-w4",
+      "date": "2026-03-02",
+      "amount_cents": 13000,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-02-22",
+        "2026-02-28"
+      ]
+    },
+    {
+      "id": "dep-2026-03-w1",
+      "date": "2026-03-09",
+      "amount_cents": 12800,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-03-01",
+        "2026-03-07"
+      ]
+    },
+    {
+      "id": "dep-2026-03-w2",
+      "date": "2026-03-16",
+      "amount_cents": 8100,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-03-08",
+        "2026-03-14"
+      ]
+    },
+    {
+      "id": "dep-2026-03-w3",
+      "date": "2026-03-23",
+      "amount_cents": 11700,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-03-15",
+        "2026-03-21"
+      ]
+    },
+    {
+      "id": "dep-2026-03-w4",
+      "date": "2026-03-30",
+      "amount_cents": 10900,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-03-22",
+        "2026-03-28"
+      ]
+    },
+    {
+      "id": "dep-2026-03-w5",
+      "date": "2026-04-02",
+      "amount_cents": 9600,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-03-29",
+        "2026-03-31"
+      ]
+    },
+    {
+      "id": "dep-2026-04-w1",
+      "date": "2026-04-09",
+      "amount_cents": 13500,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-04-01",
+        "2026-04-07"
+      ]
+    },
+    {
+      "id": "dep-2026-04-w2",
+      "date": "2026-04-16",
+      "amount_cents": 15000,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-04-08",
+        "2026-04-14"
+      ]
+    },
+    {
+      "id": "dep-2026-04-w3",
+      "date": "2026-04-23",
+      "amount_cents": 14000,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-04-15",
+        "2026-04-21"
+      ]
+    },
+    {
+      "id": "dep-2026-04-w4",
+      "date": "2026-05-02",
+      "amount_cents": 13500,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-04-22",
+        "2026-04-30"
+      ]
+    },
+    {
+      "id": "dep-2026-05-w1",
+      "date": "2026-05-09",
+      "amount_cents": 17000,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-05-01",
+        "2026-05-07"
+      ]
+    },
+    {
+      "id": "dep-2026-05-w2",
+      "date": "2026-05-16",
+      "amount_cents": 18500,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-05-08",
+        "2026-05-14"
+      ]
+    },
+    {
+      "id": "dep-2026-05-w3",
+      "date": "2026-05-23",
+      "amount_cents": 17500,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-05-15",
+        "2026-05-21"
+      ]
+    },
+    {
+      "id": "dep-2026-05-w4",
+      "date": "2026-06-02",
+      "amount_cents": 19000,
+      "description": "PARCELO DRIVER PAYOUT",
+      "matches_period": [
+        "2026-05-22",
+        "2026-05-31"
+      ]
+    },
+    {
+      "id": "dep-2026-04-unexplained",
+      "date": "2026-04-19",
+      "amount_cents": 6000,
+      "description": "ZELLE FROM R DELGADO",
+      "matches_period": null,
+      "note": "No document explains it; the Auditor should ask Maria (test case 4)."
+    }
+  ],
+  "purchases": [
+    {
+      "date": "2026-05-03",
+      "amount_cents": 3800,
+      "merchant": "Valley Gas #12",
+      "category": "gas"
+    },
+    {
+      "date": "2026-05-12",
+      "amount_cents": 2465,
+      "merchant": "Corner Grocery",
+      "category": "groceries"
+    },
+    {
+      "date": "2026-05-15",
+      "amount_cents": 4000,
+      "merchant": "Bayline Wireless",
+      "category": "phone"
+    },
+    {
+      "date": "2026-05-24",
+      "amount_cents": 4120,
+      "merchant": "Valley Gas #12",
+      "category": "gas"
+    }
+  ]
+}
