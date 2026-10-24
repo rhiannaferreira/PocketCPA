@@ -62,6 +62,7 @@ def test_maria_february_is_below_the_floor(maria_months):
     feb = maria_months["2026-02"]
     assert (feb.status, feb.gross_cents, feb.hours) == ("below_floor", 48000, 34)
     assert feb.reasons[0] == "34 hours (34 work) is short of the 80-hour route."
+    assert feb.reasons[1] == "Work hours are app-reported active time."
     assert "Income of $480.00 is below the $580.00 income route." in feb.reasons
 
 
@@ -153,6 +154,17 @@ def test_income_counts_in_the_month_its_period_ends():
     late_march = income("w5", "2026-03-29", "2026-03-31", 9600)  # paid Apr 2
     assert summarize_month("2026-03", [late_march], [], [], RULES).gross_cents == 9600
     assert summarize_month("2026-04", [late_march], [], [], RULES).gross_cents == 0
+
+
+def test_reasons_say_which_work_hours_are_app_reported():
+    inc = [income("i1", *JUNE, 30000, document_id="shot")]
+    act = [activity("app", "2026-06", 30, document_id="shot"), activity("stub", "2026-06", 10)]
+    assert summarize_month("2026-06", inc, act, [], RULES).reasons[1] == (
+        "30 of the 40 work hours are app-reported active time.")
+
+
+def test_no_app_reported_line_without_hours_from_the_payouts():
+    assert not any("app-reported" in r for r in june(30000, work_hours=20).reasons)
 
 
 def test_unknown_activity_kinds_are_refused():

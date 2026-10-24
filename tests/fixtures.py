@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from core.corridor import month_of
+from core.adapters import activities_from_income, expenses_with_month
 from core.schemas import ActivityEntry, Deposit, Document, Expense, IncomeEntry
 
 SAMPLE = Path(__file__).resolve().parent.parent / "demo" / "data"
@@ -80,22 +80,24 @@ MARIA_RAW_TEXTS = {
 
 
 def maria() -> Evidence:
-    """Maria's Feb-May 2026 SAMPLE evidence, as the ledger would hold it before any review."""
+    """Maria's Feb-May 2026 SAMPLE evidence, as the ledger would hold it before any review.
+
+    Work hours and expense months come through core/adapters.py, as they will from intake.
+    """
     key = json.loads((SAMPLE / "answer_key.json").read_text())
     seed = json.loads((SAMPLE / "nessie_seed.json").read_text())
-    earnings = key["income_entries"]
+    earnings = [{**e, "id": f"{e['document_id']}-p1", "confidence": CONFIDENCE} for e in key["income_entries"]]
     return Evidence(
         documents=[document(d["id"], d["kind"], "Parcelo" if d["kind"] == "earnings" else None,
                             image_hash=d["sha256"], uploaded_at=f"2026-06-03T18:{i:02d}:00+00:00")
                    for i, d in enumerate(key["documents"])],
-        income=[income(f"{e['document_id']}-p1", e["period_start"], e["period_end"], e["gross_cents"],
+        income=[income(e["id"], e["period_start"], e["period_end"], e["gross_cents"],
                        document_id=e["document_id"], platform=e["platform"]) for e in earnings],
-        activities=[activity(f"{e['document_id']}-work", month_of(e["period_end"]), e["active_minutes"] / 60,
-                             document_id=e["document_id"]) for e in earnings]
+        activities=activities_from_income(earnings)
                    + [activity(f"{a['document_id']}-a1", a["month"], a["hours"], a["kind"],
                                document_id=a["document_id"]) for a in key["activity_entries"]],
-        expenses=[expense(f"{x['document_id']}-e1", month_of(x["date"]), x["amount_cents"], x["category"],
-                          document_id=x["document_id"]) for x in key["expenses"]],
+        expenses=expenses_with_month({**x, "id": f"{x['document_id']}-e1", "confidence": CONFIDENCE}
+                                     for x in key["expenses"]),
         deposits=[deposit(d["id"], d["date"], d["amount_cents"], d["description"]) for d in seed["deposits"]],
         raw_texts=dict(MARIA_RAW_TEXTS),
     )

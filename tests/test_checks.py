@@ -5,6 +5,7 @@ import pytest
 from pydantic import BaseModel
 
 from core import checks
+from core.adapters import activities_from_income
 from core.checks import resolve, run_all_checks
 from core.corridor import best_month, load_rules, summarize_month, summarize_months, unref
 from tests.fixtures import Evidence, activity, answer_key, deposit, document, expense, income, maria
@@ -171,6 +172,17 @@ def test_maria_saying_not_a_duplicate_keeps_both_and_stays_resolved():
     rerun = [x for x in all_flags(replace(ev, income=r.income), {f.id}) if x.kind == "duplicate"]
     assert [x.status for x in rerun] == ["resolved"]
 
+
+
+def test_dropping_a_repeated_payout_drops_only_its_own_hours():
+    # Screenshot s2 shows two weeks; its first week repeats the payout on screenshot s1.
+    inc = [payout("s1-p1", document_id="s1"), payout("s2-p1", document_id="s2"),
+           payout("s2-p2", "2026-06-08", "2026-06-14", document_id="s2")]
+    act = activities_from_income([{**asdict(e), "active_minutes": 360} for e in inc])
+    [f] = checks.duplicates([], inc)
+    r = resolve(f, "yes", inc, act, [], RULES)
+    assert [a.id for a in r.activities] == ["s1-p1-work", "s2-p2-work"]
+    assert (r.summaries[0].gross_cents, r.summaries[0].hours) == (24000, 12)
 
 
 def test_a_payout_id_that_matches_a_document_id_drops_only_that_payout():

@@ -142,8 +142,8 @@ def summarize_month(month: str, income: Sequence[IncomeEntry], activities: Seque
     ceiling_net = net <= rules.ceiling_cents
     status = _status(floor_gross and ceiling_gross, floor_net and ceiling_net, ceiling_gross)
 
-    reasons = [_hours_reason(by_kind, hours, rules), *_floor_reasons(gross, spent, net, rules),
-               _ceiling_reason(gross, spent, net, rules)]
+    reasons = [_hours_reason(by_kind, hours, rules), *_app_hours_reason(inc, act, by_kind["work"]),
+               *_floor_reasons(gross, spent, net, rules), _ceiling_reason(gross, spent, net, rules)]
     if status == "qualifies_depends_on_basis":
         reasons.append(_basis_reason(gross_reading_ok=floor_gross and ceiling_gross))
 
@@ -181,6 +181,17 @@ def _hours_reason(by_kind: dict[str, float], hours: float, rules: Rules) -> str:
     unit = "hour" if hours == 1 else "hours"
     verdict = "meets" if hours >= rules.floor_hours else "is short of"
     return f"{hours_text(hours)} {unit} ({parts}) {verdict} {route}."
+
+
+def _app_hours_reason(inc: list[IncomeEntry], act: list[ActivityEntry], work_hours: float) -> list[str]:
+    """Work hours read off the same documents as the month's payouts are the app's active time."""
+    docs = {e.document_id for e in inc}
+    app = round(sum(a.hours for a in act if a.kind == "work" and a.document_id in docs), 2)
+    if not app:
+        return []
+    if app == work_hours:
+        return ["Work hours are app-reported active time."]
+    return [f"{hours_text(app)} of the {hours_text(work_hours)} work hours are app-reported active time."]
 
 
 def _floor_reasons(gross: int, spent: int, net: int, rules: Rules) -> list[str]:

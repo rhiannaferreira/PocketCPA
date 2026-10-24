@@ -22,6 +22,7 @@ from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Iterable, Mapping, Sequence, TypeVar, Union
 
+from core.adapters import work_activity_id
 from core.corridor import (BLOCK, Rules, as_date, blocking, dollars, hours_text, income_month, month_label,
                            month_of, ref, summarize_month, unref)
 from core.schemas import ActivityEntry, Deposit, Document, Expense, Flag, IncomeEntry, MonthSummary
@@ -272,7 +273,8 @@ def drop_copy(copy_ref: str, income: Sequence[IncomeEntry], activities: Sequence
               expenses: Sequence[Expense]) -> tuple[list[IncomeEntry], list[ActivityEntry], list[Expense]]:
     """Remove a confirmed copy: one payout (inc:) or every row of a repeated document (doc:).
 
-    A document left with no income was only the copy, so its work hours go too.
+    The copy's work hours go with it: the hours derived from that payout, and every row of a
+    document left with no income.
     """
     kind, copy_id = unref(copy_ref)
     if kind not in ("doc", "inc"):
@@ -281,6 +283,7 @@ def drop_copy(copy_ref: str, income: Sequence[IncomeEntry], activities: Sequence
     gone = {e.document_id for e in income} - {e.document_id for e in kept}
     if kind == "doc":
         gone.add(copy_id)
+    derived = work_activity_id(copy_id) if kind == "inc" else None
     return (kept,
-            [a for a in activities if a.document_id not in gone],
+            [a for a in activities if a.document_id not in gone and a.id != derived],
             [x for x in expenses if x.document_id not in gone])
